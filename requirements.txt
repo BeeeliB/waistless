@@ -8,3 +8,4 @@ requests
 datetime
 plotly.express
 scikit-learn
+tensorflow==2.15.0
