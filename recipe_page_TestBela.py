@@ -134,6 +134,34 @@ def load_ml_components():
         return False
 
 
+def predict_recipe(ingredients):
+    """Predict recipe and additional details based on selected ingredients."""
+    try:
+        ingredients_text = ', '.join(ingredients)
+        ingredients_vec = st.session_state["vectorizer"].transform([ingredients_text]).toarray()
+        
+        predictions = st.session_state["ml_model"].predict(ingredients_vec)
+        
+        cuisine_index = predictions[0].argmax()
+        recipe_index = predictions[1].argmax()
+        
+        predicted_cuisine = st.session_state["label_encoder_cuisine"].inverse_transform([cuisine_index])[0]
+        predicted_recipe = st.session_state["label_encoder_recipe"].inverse_transform([recipe_index])[0]
+        
+        predicted_prep_time = predictions[2][0][0]
+        predicted_calories = predictions[3][0][0]
+        
+        return {
+            'recipe': predicted_recipe,
+            'cuisine': predicted_cuisine,
+            'preparation_time': predicted_prep_time,
+            'calories': predicted_calories
+        }
+    except Exception as e:
+        st.error(f"Error making prediction: {e}")
+        return None
+
+
 def recipepage():
     st.title("You think you can cook! Better take a recipe!")
     st.subheader("Delulu is not the solulu")
@@ -177,7 +205,6 @@ def recipepage():
                     st.success(f"You have chosen to make '{selected_recipe}'!")
 
     with tab2:
-        i
         st.subheader("🎯 Get Personalized Recipe Recommendations")
 
         # Button to load ML components
