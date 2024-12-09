@@ -52,6 +52,55 @@ def custom_tokenizer(text):
     return text.split(', ')
 
 
+def get_recipes_from_inventory(selected_ingredients=None):
+    """Get recipes from TheMealDB API based on ingredients."""
+    try:
+        # Use all inventory if no specific ingredients are selected
+        ingredients = selected_ingredients if selected_ingredients else list(st.session_state["inventory"].keys())
+        if not ingredients:
+            st.warning("Inventory is empty. Please add some items to the inventory.")
+            return [], {}
+
+        recipe_titles = []
+        recipe_links = {}
+        displayed_recipes = 0
+
+        for ingredient in ingredients:
+            st.write(f"Fetching recipes for ingredient: {ingredient}...")
+            response = requests.get(f"{THEMEALDB_URL}?i={ingredient}")
+            if response.status_code != 200:
+                st.error(f"Failed to fetch recipes for {ingredient}. Skipping...")
+                continue
+
+            data = response.json()
+            meals = data.get("meals", [])
+            if not meals:
+                st.warning(f"No recipes found for ingredient: {ingredient}.")
+                continue
+
+            # Shuffle meals to provide variety
+            random.shuffle(meals)
+
+            for meal in meals:
+                if meal["strMeal"] not in recipe_titles:
+                    recipe_titles.append(meal["strMeal"])
+                    recipe_links[meal["strMeal"]] = {
+                        "link": f"https://www.themealdb.com/meal/{meal['idMeal']}",
+                        "missed_ingredients": [],  # TheMealDB doesn't provide missed ingredients
+                    }
+                    displayed_recipes += 1
+                    if displayed_recipes >= 3:  # Limit number of recipes to 3
+                        break
+            if displayed_recipes >= 3:
+                break
+
+        return recipe_titles, recipe_links
+
+    except Exception as e:
+        st.error(f"An error occurred while fetching recipes: {e}")
+        return [], {}
+
+
 def load_ml_components():
     """Load the trained model and preprocessing components."""
     try:
@@ -85,34 +134,6 @@ def load_ml_components():
         return False
 
 
-def predict_recipe(ingredients):
-    """Predict recipe and additional details based on selected ingredients."""
-    try:
-        ingredients_text = ', '.join(ingredients)
-        ingredients_vec = st.session_state["vectorizer"].transform([ingredients_text]).toarray()
-        
-        predictions = st.session_state["ml_model"].predict(ingredients_vec)
-        
-        cuisine_index = predictions[0].argmax()
-        recipe_index = predictions[1].argmax()
-        
-        predicted_cuisine = st.session_state["label_encoder_cuisine"].inverse_transform([cuisine_index])[0]
-        predicted_recipe = st.session_state["label_encoder_recipe"].inverse_transform([recipe_index])[0]
-        
-        predicted_prep_time = predictions[2][0][0]
-        predicted_calories = predictions[3][0][0]
-        
-        return {
-            'recipe': predicted_recipe,
-            'cuisine': predicted_cuisine,
-            'preparation_time': predicted_prep_time,
-            'calories': predicted_calories
-        }
-    except Exception as e:
-        st.error(f"Error making prediction: {e}")
-        return None
-
-
 def recipepage():
     st.title("You think you can cook! Better take a recipe!")
     st.subheader("Delulu is not the solulu")
@@ -120,109 +141,47 @@ def recipepage():
     tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference Based"])
     
     with tab1:
-        # Existing recipe page functionality
         if st.session_state["roommates"]:
-            selected_roommate = st.selectbox("Select the roommate:", st.session_state["roommates"]) # Dropdown to select a roommate
-            st.session_state["selected_user"] = selected_roommate  # Save selected user to session state
-            
-            # Section to choose how to search for recipes
-            st.subheader("Recipe search options")
-            search_mode = st.radio("Choose a search mode:", ("Automatic (use all inventory)", "Custom (choose ingredients)"))
-            
-            # Recipe selection form - custom or inventory
-            with st.form("recipe_form"):
-                if search_mode == "Custom (choose ingredients)": # If user chooses to select specific ingredients
-                    selected_ingredients = st.multiselect("Select ingredients from inventory:", st.session_state["inventory"].keys())
-                else:
-                    selected_ingredients = None  # Use the entire inventory
-                
-                search_button = st.form_submit_button("Get recipe suggestions") # Button to get recipes
-                if search_button:
-                    # Call the function to get recipes based on the selected ingredients
-                    recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
-                    st.session_state["recipe_suggestions"] = recipe_titles # Store recipe titel
-                    st.session_state["recipe_links"] = recipe_links # Store recipe link
-
-            # Display recipe suggestions with links only if they have been generated
-            if st.session_state["recipe_suggestions"]:
-                st.subheader("Choose a recipe to make") # Subtitle
-                for title in st.session_state["recipe_suggestions"]: # Loop through suggested recipes
-                    link = st.session_state["recipe_links"][title]["link"]
-                    missed_ingredients = st.session_state["recipe_links"][title]["missed_ingredients"]
-
-                    # Display the recipe title and link
-                    st.write(f"- **{title}**: ([View Recipe]({link}))")
-                    if missed_ingredients: # Show extra ingredients needed
-                        st.write(f"  *Extra ingredients needed:* {', '.join(missed_ingredients)}")
-
-                # Let the user choose one recipe to make
-                selected_recipe = st.selectbox("Select a recipe to cook", ["Please choose..."] + st.session_state["recipe_suggestions"])
-                if selected_recipe != "Please choose...":
-                    st.session_state["selected_recipe"] = selected_recipe # Save the selected recipe
-                    st.session_state["selected_recipe_link"] = st.session_state["recipe_links"][selected_recipe]["link"]
-                    st.success(f"You have chosen to make '{selected_recipe}'!") # Success message
-                
-        else:
-            st.warning("No roommates available.") # Warning message
-            return
-
-        # Display the rating section if a recipe was selected
-        if st.session_state["selected_recipe"] and st.session_state["selected_recipe_link"]:
-            rate_recipe(st.session_state["selected_recipe"], st.session_state["selected_recipe_link"])
-
-        # Display cooking history in a table
-        if st.session_state["cooking_history"]:
-            with st.expander("Cooking History"):
-                history_data = [
-                    {
-                        "Person": entry["Person"],
-                        "Recipe": entry["Recipe"],
-                        "Rating": entry["Rating"],
-                        "Date": entry["Date"]
-                    }
-                    for entry in st.session_state["cooking_history"]
-                ]
-                st.table(pd.DataFrame(history_data)) # Display the history as a table
-
-
-    with tab2:
-        if st.session_state["roommates"]:
-            selected_roommate = st.selectbox("Select your name:", st.session_state["roommates"], key="pref_roommate")
+            selected_roommate = st.selectbox("Select the roommate:", st.session_state["roommates"])
             st.session_state["selected_user"] = selected_roommate
 
-            st.subheader("🎯 Get Personalized Recipe Recommendations")
-            if st.button("Load Prediction Model"):
-                if load_ml_components():
-                    st.success("ML components are ready!")
+            st.subheader("Recipe search options")
+            search_mode = st.radio("Choose a search mode:", ("Automatic (use all inventory)", "Custom (choose ingredients)"))
+
+            with st.form("recipe_form"):
+                if search_mode == "Custom (choose ingredients)":
+                    selected_ingredients = st.multiselect("Select ingredients from inventory:", st.session_state["inventory"].keys())
                 else:
-                    st.warning("Using standard recipe recommendations due to missing ML components.")
-            
-            if st.session_state["ml_model"]:
-                all_ingredients = set(st.session_state["inventory"].keys())
-                selected_ingredients = st.multiselect(
-                    "Select ingredients you'd like to use:",
-                    sorted(list(all_ingredients))
-                )
-                
-                if st.button("Get Recipe Recommendation") and selected_ingredients:
-                    with st.spinner("Analyzing your preferences..."):
-                        prediction = predict_recipe(selected_ingredients)
-                        
-                        if prediction:
-                            st.success(f"Based on your preferences, we recommend: {prediction['recipe']}")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Cuisine Type", prediction['cuisine'])
-                                st.metric("Preparation Time", f"{prediction['preparation_time']:.2f} mins")
-                            with col2:
-                                st.metric("Estimated Calories", f"{prediction['calories']:.2f} kcal")
-                        else:
-                            st.warning("Could not generate a recommendation. Try different ingredients.")
+                    selected_ingredients = None
+
+                search_button = st.form_submit_button("Get recipe suggestions")
+                if search_button:
+                    recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
+                    if recipe_titles:
+                        st.session_state["recipe_suggestions"] = recipe_titles
+                        st.session_state["recipe_links"] = recipe_links
+                        st.success("Recipes fetched successfully!")
+                    else:
+                        st.warning("No recipes found. Try different ingredients.")
+
+            if st.session_state["recipe_suggestions"]:
+                st.subheader("Choose a recipe to make")
+                for title in st.session_state["recipe_suggestions"]:
+                    link = st.session_state["recipe_links"][title]["link"]
+                    st.write(f"- **{title}**: ([View Recipe]({link}))")
+
+                selected_recipe = st.selectbox("Select a recipe to cook", ["Please choose..."] + st.session_state["recipe_suggestions"])
+                if selected_recipe != "Please choose...":
+                    st.session_state["selected_recipe"] = selected_recipe
+                    st.session_state["selected_recipe_link"] = st.session_state["recipe_links"][selected_recipe]["link"]
+                    st.success(f"You have chosen to make '{selected_recipe}'!")
+
+    with tab2:
+        st.subheader("🎯 Get Personalized Recipe Recommendations")
+        if st.button("Load Prediction Model"):
+            if load_ml_components():
+                st.success("ML components are ready!")
             else:
-                st.warning("Model not loaded. Please load the model to get personalized recommendations.")
-        else:
-            st.warning("No roommates available.")
+                st.warning("Using standard recipe recommendations due to missing ML components.")
 
-
-# Run the recipe page
 recipepage()
