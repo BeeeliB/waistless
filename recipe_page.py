@@ -25,7 +25,7 @@ if "inventory" not in st.session_state:
 
 # Initialize more session state variables for roommate and recipe-related data
 if "roommates" not in st.session_state: # Define examples if nothing added
-    st.session_state["roommates"] = ["Bilbo", "Frodo", "Gandalf der Weise"] # Example rommates
+    st.session_state["roommates"] = ["Frodo", "Gandalf der Weise"] # Example rommates
 if "selected_user" not in st.session_state:
     st.session_state["selected_user"] = None # Keeps track of which user is selected
 if "recipe_suggestions" not in st.session_state:
