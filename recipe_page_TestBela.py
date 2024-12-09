@@ -13,7 +13,8 @@ import tensorflow as tf
 # Replace Spoonacular API configuration with TheMealDB
 THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
 
-# Initialization of session state variables and examples if nothing in session_state
+
+# Initialize session state variables
 if "inventory" not in st.session_state:
     st.session_state["inventory"] = {
         "Tomato": {"Quantity": 5, "Unit": "gram", "Price": 3.0},
@@ -23,7 +24,6 @@ if "inventory" not in st.session_state:
         "Olive Oil": {"Quantity": 1, "Unit": "liter", "Price": 8.0},
     }
 
-# Initialize more session state variables for roommate and recipe-related data
 if "roommates" not in st.session_state:
     st.session_state["roommates"] = ["Bilbo", "Frodo", "Gandalf der Weise"]
 if "selected_user" not in st.session_state:
@@ -38,8 +38,6 @@ if "selected_recipe_link" not in st.session_state:
     st.session_state["selected_recipe_link"] = None
 if "cooking_history" not in st.session_state:
     st.session_state["cooking_history"] = []
-
-# Initialize additional session state variables for ML predictions
 if "ml_model" not in st.session_state:
     st.session_state["ml_model"] = None
 if "vectorizer" not in st.session_state:
@@ -50,11 +48,13 @@ if "label_encoder_recipe" not in st.session_state:
     st.session_state["label_encoder_recipe"] = None
 
 
-# Function to load ML components
+def custom_tokenizer(text):
+    return text.split(', ')
+
+
 def load_ml_components():
     """Load the trained model and preprocessing components."""
     try:
-        # Load the ML model
         if st.session_state["ml_model"] is None:
             custom_objects = {
                 'mse': tf.keras.losses.MeanSquaredError(),
@@ -65,14 +65,12 @@ def load_ml_components():
             st.session_state["ml_model"] = load_model('models2/recipe_model.h5', custom_objects=custom_objects)
             st.write("✅ Model loaded successfully!")
         
-        # Load the vectorizer
         if st.session_state["vectorizer"] is None:
             vectorizer = joblib.load('models2/tfidf_ingredients.pkl')
-            vectorizer.tokenizer = custom_tokenizer  # Ensure the tokenizer is set correctly
+            vectorizer.tokenizer = custom_tokenizer
             st.session_state["vectorizer"] = vectorizer
             st.write("✅ Vectorizer loaded successfully!")
         
-        # Load label encoders for cuisine and recipes
         if st.session_state["label_encoder_cuisine"] is None:
             st.session_state["label_encoder_cuisine"] = joblib.load('models2/label_encoder_cuisine.pkl')
             st.write("✅ Cuisine label encoder loaded successfully!")
@@ -87,17 +85,14 @@ def load_ml_components():
         return False
 
 
-# Function to predict recipes
 def predict_recipe(ingredients):
     """Predict recipe and additional details based on selected ingredients."""
     try:
         ingredients_text = ', '.join(ingredients)
         ingredients_vec = st.session_state["vectorizer"].transform([ingredients_text]).toarray()
         
-        # Get predictions
         predictions = st.session_state["ml_model"].predict(ingredients_vec)
         
-        # Process predictions
         cuisine_index = predictions[0].argmax()
         recipe_index = predictions[1].argmax()
         
@@ -118,50 +113,10 @@ def predict_recipe(ingredients):
         return None
 
 
-# Preference-based recommendations
-def show_preference_based_recommendations():
-    """Show a section for preference-based recipe recommendations."""
-    st.subheader("🎯 Get Personalized Recipe Recommendations")
-    
-    # Load the model if not already loaded
-    if st.button("Load Prediction Model"):
-        if load_ml_components():
-            st.success("ML components loaded successfully!")
-        else:
-            st.warning("Failed to load ML components. Using fallback options.")
-    
-    # Allow ingredient selection only if the model is loaded
-    if st.session_state["ml_model"]:
-        all_ingredients = set(st.session_state["inventory"].keys())
-        selected_ingredients = st.multiselect(
-            "Select ingredients you'd like to use:",
-            sorted(list(all_ingredients))
-        )
-        
-        if st.button("Get Recipe Recommendation") and selected_ingredients:
-            with st.spinner("Analyzing your preferences..."):
-                prediction = predict_recipe(selected_ingredients)
-                
-                if prediction:
-                    st.success(f"We recommend: {prediction['recipe']}")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Cuisine Type", prediction['cuisine'])
-                        st.metric("Preparation Time", f"{prediction['preparation_time']:.2f} mins")
-                    with col2:
-                        st.metric("Estimated Calories", f"{prediction['calories']:.2f} kcal")
-                else:
-                    st.warning("Could not generate a recommendation. Try different ingredients.")
-    else:
-        st.warning("Model not loaded. Please load the model first.")
-
-
-# Run the recipe page
 def recipepage():
     st.title("You think you can cook! Better take a recipe!")
     st.subheader("Delulu is not the solulu")
     
-    # Add tabs for different recipe finding methods
     tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference Based"])
     
     with tab1:
@@ -229,9 +184,45 @@ def recipepage():
                 ]
                 st.table(pd.DataFrame(history_data)) # Display the history as a table
 
+
     with tab2:
-        # Preference-based recipe recommendations
-        show_preference_based_recommendations()
+        if st.session_state["roommates"]:
+            selected_roommate = st.selectbox("Select your name:", st.session_state["roommates"], key="pref_roommate")
+            st.session_state["selected_user"] = selected_roommate
+
+            st.subheader("🎯 Get Personalized Recipe Recommendations")
+            if st.button("Load Prediction Model"):
+                if load_ml_components():
+                    st.success("ML components are ready!")
+                else:
+                    st.warning("Using standard recipe recommendations due to missing ML components.")
+            
+            if st.session_state["ml_model"]:
+                all_ingredients = set(st.session_state["inventory"].keys())
+                selected_ingredients = st.multiselect(
+                    "Select ingredients you'd like to use:",
+                    sorted(list(all_ingredients))
+                )
+                
+                if st.button("Get Recipe Recommendation") and selected_ingredients:
+                    with st.spinner("Analyzing your preferences..."):
+                        prediction = predict_recipe(selected_ingredients)
+                        
+                        if prediction:
+                            st.success(f"Based on your preferences, we recommend: {prediction['recipe']}")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Cuisine Type", prediction['cuisine'])
+                                st.metric("Preparation Time", f"{prediction['preparation_time']:.2f} mins")
+                            with col2:
+                                st.metric("Estimated Calories", f"{prediction['calories']:.2f} kcal")
+                        else:
+                            st.warning("Could not generate a recommendation. Try different ingredients.")
+            else:
+                st.warning("Model not loaded. Please load the model to get personalized recommendations.")
+        else:
+            st.warning("No roommates available.")
 
 
+# Run the recipe page
 recipepage()
