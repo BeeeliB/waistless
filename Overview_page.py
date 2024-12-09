@@ -50,10 +50,7 @@ def overview_page():
         # Step 3: Convert Date to datetime
         purchases_df["Date"] = pd.to_datetime(purchases_df["Date"], errors="coerce")  # Parse full datetime
     
-        # Check if Date parsing works
-        st.write("Parsed DataFrame (Date column):")
-        st.write(purchases_df)
-
+        
         # Step 4: Filter for the current month and year
         current_month = datetime.now().month
         current_year = datetime.now().year
@@ -72,9 +69,7 @@ def overview_page():
             value_name="Total Purchases (CHF)"
         )
 
-        # Check if reshaped data is correct
-        st.write("Reshaped Data for Plotly:")
-        st.write(daily_purchases_long)
+        
 
         # Step 7: Plot
         if not daily_purchases_long.empty:
