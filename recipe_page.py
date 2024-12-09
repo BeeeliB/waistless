@@ -125,7 +125,8 @@ def load_ml_components():
                 'accuracy': tf.keras.metrics.Accuracy(),
                 'custom_tokenizer': custom_tokenizer
             }
-            st.session_state["ml_model"] = load_model('models2/recipe_model.h5', custom_objects=custom_objects)
+            model_path = os.path.join(os.getcwd(), 'models2/recipe_model.h5')
+            st.session_state["ml_model"] = load_model(model_path, custom_objects=custom_objects)
         
         if st.session_state["vectorizer"] is None:
             vectorizer = joblib.load('models2/tfidf_ingredients.pkl')
