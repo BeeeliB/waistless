@@ -162,21 +162,42 @@ def recipepage():
     # Tab 2: Preference-Based Recommendations
     with tab2:
         if st.session_state["roommates"]:
-            st.subheader("Get Personalized Recipe Recommendations")
+            st.subheader("🎯 Get Personalized Recipe Recommendations")
+            selected_roommate = st.selectbox("Select your name:", st.session_state["roommates"], key="pref_roommate")
+            st.session_state["selected_user"] = selected_roommate
+
+            # Load the ML Model
             if st.button("Load ML Model"):
                 if load_ml_components():
-                    st.success("ML Model loaded.")
+                    st.success("ML Model loaded successfully!")
                 else:
-                    st.error("Failed to load ML Model.")
+                    st.error("Failed to load ML Model. Please try again.")
+
+            # Check if ML Model is loaded
             if st.session_state["ml_model"]:
-                ingredients = st.multiselect(
-                    "Select ingredients:", st.session_state["inventory"].keys()
-                )
+                selected_ingredients = st.multiselect("Select ingredients:", st.session_state["inventory"].keys())
                 if st.button("Get Recommendation"):
-                    prediction = predict_recipe(ingredients)
-                    if prediction:
-                        st.write(f"We recommend: {prediction['recipe']} (Cuisine: {prediction['cuisine']})")
-                        recipes, links = get_recipes_from_inventory(ingredients)
-                        for recipe in recipes:
-                            st.write(f"- {recipe}: [View Recipe]({links[recipe]['link']})")
+                    if selected_ingredients:
+                        with st.spinner("Analyzing your preferences..."):
+                            prediction = predict_recipe(selected_ingredients)
+                            if prediction:
+                                recommended_recipe = prediction["recipe"]
+                                st.write(f"We recommend: **{recommended_recipe}** (Cuisine: {prediction['cuisine']})")
+
+                                # Fetch and display the link for the recommended recipe
+                                recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
+                                if recommended_recipe in recipe_links:
+                                    recipe_link = recipe_links[recommended_recipe]["link"]
+                                    st.write(f"View the recipe here: [**{recommended_recipe}**]({recipe_link})")
+                                else:
+                                    st.warning(f"Sorry, no direct link found for '{recommended_recipe}' in the inventory.")
+                            else:
+                                st.warning("Could not generate a recommendation. Try different ingredients.")
+                    else:
+                        st.warning("Please select at least one ingredient.")
+            else:
+                st.warning("Model not loaded. Please load the model first.")
+        else:
+            st.warning("No roommates available.")
+
 recipepage()
