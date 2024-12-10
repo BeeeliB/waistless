@@ -8,6 +8,7 @@ import joblib
 import tensorflow as tf
 
 THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
+SEARCH_URL = 'https://www.themealdb.com/api/json/v1/1/search.php?s='
 
 # Initialize session state variables
 if "inventory" not in st.session_state:
@@ -112,6 +113,18 @@ def predict_recipe(ingredients):
         st.error(f"Error making prediction: {e}")
         return None
 
+def fetch_recipe_link(recipe_name):
+    try:
+        response = requests.get(f"{SEARCH_URL}{recipe_name}")
+        if response.status_code == 200:
+            meals = response.json().get("meals")
+            if meals:
+                return f"https://www.themealdb.com/meal/{meals[0]['idMeal']}"
+        return None
+    except Exception as e:
+        st.error(f"Error fetching recipe link: {e}")
+        return None
+
 def recipepage():
     st.title("Recipe Recommendation App")
     tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference Based"])
@@ -157,17 +170,11 @@ def recipepage():
                             if prediction:
                                 recommended_recipe = prediction["recipe"]
                                 st.write(f"Recommended Recipe: **{recommended_recipe}** (Cuisine: {prediction['cuisine']})")
-                                api_response = requests.get(f"https://www.themealdb.com/api/json/v1/1/search.php?s={recommended_recipe}")
-                                if api_response.status_code == 200:
-                                    api_data = api_response.json()
-                                    meals = api_data.get("meals")
-                                    if meals:
-                                        recipe_link = f"https://www.themealdb.com/meal/{meals[0]['idMeal']}"
-                                        st.write(f"[View Recipe Here]({recipe_link})")
-                                    else:
-                                        st.warning(f"No recipe found for '{recommended_recipe}' in the API.")
+                                recipe_link = fetch_recipe_link(recommended_recipe)
+                                if recipe_link:
+                                    st.write(f"[View Recipe Here]({recipe_link})")
                                 else:
-                                    st.error("Failed to fetch recipe details from TheMealDB.")
+                                    st.warning(f"No link found for '{recommended_recipe}'.")
                             else:
                                 st.warning("Could not generate a recommendation. Try different ingredients.")
                     else:
