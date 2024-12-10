@@ -4,8 +4,7 @@ import random
 from datetime import datetime
 from tensorflow.keras.models import load_model
 import joblib
-
-THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
+import os
 
 # Initialize session state variables
 if "ml_model" not in st.session_state:
@@ -17,83 +16,100 @@ if "label_encoder_cuisine" not in st.session_state:
 if "label_encoder_recipe" not in st.session_state:
     st.session_state["label_encoder_recipe"] = None
 
+THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/search.php'
+
 def load_ml_components():
-    """Load ML components."""
+    """Load the trained model and preprocessing components."""
     try:
         if st.session_state["ml_model"] is None:
-            st.session_state["ml_model"] = load_model('models2/recipe_model.h5')
-            st.success("ML Model loaded successfully.")
-        
+            model_path = 'models2/recipe_model.h5'
+            st.session_state["ml_model"] = load_model(model_path)
+            st.write("✅ Model loaded successfully!")
+
         if st.session_state["vectorizer"] is None:
-            st.session_state["vectorizer"] = joblib.load('models2/tfidf_vectorizer.pkl')
-        
+            vectorizer_path = 'models2/tfidf_ingredients.pkl'
+            st.session_state["vectorizer"] = joblib.load(vectorizer_path)
+            st.write("✅ Vectorizer loaded successfully!")
+
         if st.session_state["label_encoder_cuisine"] is None:
-            st.session_state["label_encoder_cuisine"] = joblib.load('models2/label_encoder_cuisine.pkl')
-        
+            encoder_cuisine_path = 'models2/label_encoder_cuisine.pkl'
+            st.session_state["label_encoder_cuisine"] = joblib.load(encoder_cuisine_path)
+            st.write("✅ Cuisine label encoder loaded successfully!")
+
         if st.session_state["label_encoder_recipe"] is None:
-            st.session_state["label_encoder_recipe"] = joblib.load('models2/label_encoder_recipe.pkl')
-        
+            encoder_recipe_path = 'models2/label_encoder_recipe.pkl'
+            st.session_state["label_encoder_recipe"] = joblib.load(encoder_recipe_path)
+            st.write("✅ Recipe label encoder loaded successfully!")
     except Exception as e:
-        st.error(f"Error loading ML components: {e}")
+        st.error(f"Error initializing ML components: {e}")
+        st.session_state["ml_model"] = None
+
+def fetch_recipe_link(recipe_name):
+    """Fetch recipe details from TheMealDB API."""
+    try:
+        response = requests.get(f"{THEMEALDB_URL}?s={recipe_name}")
+        if response.status_code == 200:
+            data = response.json()
+            meals = data.get("meals", [])
+            if meals:
+                return f"https://www.themealdb.com/meal/{meals[0]['idMeal']}"
+        return None
+    except Exception as e:
+        st.error(f"Error fetching recipe link: {e}")
+        return None
 
 def predict_recipe(ingredients):
     """Predict recipe and additional details based on selected ingredients."""
     try:
-        if not ingredients:
-            st.warning("No ingredients selected for prediction.")
+        if st.session_state["ml_model"] is None:
+            st.warning("Model not loaded. Cannot make predictions.")
             return None
-        
-        vectorized_ingredients = st.session_state["vectorizer"].transform([", ".join(ingredients)])
-        prediction = st.session_state["ml_model"].predict(vectorized_ingredients)
-        
-        cuisine_index = prediction[0].argmax()
-        recipe_index = prediction[1].argmax()
-        
-        cuisine = st.session_state["label_encoder_cuisine"].inverse_transform([cuisine_index])[0]
-        recipe = st.session_state["label_encoder_recipe"].inverse_transform([recipe_index])[0]
-        
-        return {"cuisine": cuisine, "recipe": recipe}
+
+        ingredients_text = ', '.join(ingredients)
+        ingredients_vec = st.session_state["vectorizer"].transform([ingredients_text]).toarray()
+
+        predictions = st.session_state["ml_model"].predict(ingredients_vec)
+        cuisine_index = predictions[0].argmax()
+        recipe_index = predictions[1].argmax()
+
+        predicted_cuisine = st.session_state["label_encoder_cuisine"].inverse_transform([cuisine_index])[0]
+        predicted_recipe = st.session_state["label_encoder_recipe"].inverse_transform([recipe_index])[0]
+
+        return {
+            'recipe': predicted_recipe,
+            'cuisine': predicted_cuisine,
+            'link': fetch_recipe_link(predicted_recipe)
+        }
     except Exception as e:
-        st.error(f"Prediction error: {e}")
+        st.error(f"Error making prediction: {e}")
         return None
 
-def get_recipes_from_inventory(ingredients):
-    """Fetch recipes from TheMealDB API."""
-    recipes = []
-    recipe_links = {}
-    for ingredient in ingredients:
-        response = requests.get(f"{THEMEALDB_URL}?i={ingredient}")
-        if response.status_code == 200:
-            data = response.json().get("meals", [])
-            for meal in data:
-                recipes.append(meal["strMeal"])
-                recipe_links[meal["strMeal"]] = f"https://www.themealdb.com/meal/{meal['idMeal']}"
-    return recipes, recipe_links
-
 def recipepage():
-    st.title("Recipe Suggestions")
-    tab1, tab2 = st.tabs(["Standard Search", "Preference-Based Recommendations"])
+    st.title("Recipe Recommendations")
+
+    tab1, tab2 = st.tabs(["Standard Search", "Preference Based"])
 
     with tab1:
-        ingredients = st.multiselect("Select Ingredients", ["Tomato", "Onion", "Garlic"])
-        if st.button("Find Recipes"):
-            recipes, recipe_links = get_recipes_from_inventory(ingredients)
-            if recipes:
-                for recipe in recipes:
-                    st.write(f"{recipe} - [Link]({recipe_links[recipe]})")
-            else:
-                st.warning("No recipes found.")
-    
+        st.write("Standard search functionality here...")
+
     with tab2:
-        if st.button("Load ML Components"):
+        st.subheader("Preference Based Recommendations")
+        if st.button("Load Prediction Model"):
             load_ml_components()
+
         if st.session_state["ml_model"]:
-            selected_ingredients = st.multiselect("Select Ingredients for ML Prediction", ["Tomato", "Onion", "Garlic"])
-            if st.button("Predict Recipe"):
+            selected_ingredients = st.multiselect("Select ingredients:", ["Tomato", "Onion", "Garlic", "Chicken"])
+            if st.button("Get Recipe Recommendation"):
                 prediction = predict_recipe(selected_ingredients)
                 if prediction:
-                    st.write(f"Recommended Recipe: {prediction['recipe']} ({prediction['cuisine']})")
-                    st.write(f"[View Recipe]({st.session_state['recipe_links'].get(prediction['recipe'], {}).get('link', '#')})")
+                    st.write(f"### Recommended Recipe: {prediction['recipe']}")
+                    st.write(f"- Cuisine: {prediction['cuisine']}")
+                    if prediction['link']:
+                        st.write(f"[View Recipe Here]({prediction['link']})")
+                    else:
+                        st.warning("No link available for this recipe.")
+        else:
+            st.warning("Please load the model to get personalized recommendations.")
 
 recipepage()
 
