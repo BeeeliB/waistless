@@ -127,27 +127,64 @@ def recipepage():
                 rate_recipe(selected_recipe, st.session_state["selected_recipe_link"])
 
     with tab2:
+    # New preference-based recommendations
+    if st.session_state["roommates"]:
+        selected_roommate = st.selectbox("Select your name:", st.session_state["roommates"], key="pref_roommate")
+        st.session_state["selected_user"] = selected_roommate
+
         st.subheader("🎯 Get Personalized Recipe Recommendations")
-
-        # Allow user to select ingredients
-        all_ingredients = set(st.session_state["inventory"].keys())
-        selected_ingredients = st.multiselect(
-            "Select ingredients you'd like to use:",
-            sorted(list(all_ingredients))
-        )
-
-        if st.button("Get Recipe Recommendations"):
-            if selected_ingredients:
-                with st.spinner("Fetching recipes based on your preferences..."):
-                    recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
-                    if recipe_titles:
-                        st.success("Here are some recipes you might like:")
-                        for title in recipe_titles:
-                            link = recipe_links[title]["link"]
-                            st.write(f"- **{title}**: ([View Recipe]({link}))")
-                    else:
-                        st.warning("No recipes found. Try different ingredients.")
+        
+        # Button to load ML components
+        if st.button("Load Prediction Model"):
+            if load_ml_components():
+                st.success("ML components are ready!")
             else:
-                st.warning("Please select at least one ingredient.")
+                st.warning("Using standard recipe recommendations due to missing ML components.")
+        
+        # Check if the ML model is loaded before allowing further actions
+        if st.session_state["ml_model"]:
+            # Allow user to select ingredients
+            all_ingredients = set(st.session_state["inventory"].keys())
+            selected_ingredients = st.multiselect(
+                "Select ingredients you'd like to use:",
+                sorted(list(all_ingredients))
+            )
+
+            # Button to get recipe recommendations
+            if st.button("Get Recipe Recommendation"):
+                if selected_ingredients:
+                    with st.spinner("Analyzing your preferences..."):
+                        prediction = predict_recipe(selected_ingredients)
+                        
+                        if prediction:
+                            # Display the recommended recipe
+                            st.success(f"Based on your preferences, we recommend: {prediction['recipe']}")
+                            
+                            # Display additional prediction details
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Cuisine Type", prediction['cuisine'])
+                                st.metric("Preparation Time", f"{prediction['preparation_time']:.2f} mins")
+                            with col2:
+                                st.metric("Estimated Calories", f"{prediction['calories']:.2f} kcal")
+                            
+                            # Fetch and display recipes with links from TheMealDB API
+                            st.write("---")
+                            st.write("Here are some recipes related to your preferences:")
+                            recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
+                            if recipe_titles:
+                                for title in recipe_titles:
+                                    link = recipe_links[title]["link"]
+                                    st.write(f"- **{title}**: ([View Recipe]({link}))")
+                            else:
+                                st.warning("No recipes found. Try different ingredients.")
+                        else:
+                            st.warning("Could not generate a recommendation. Try different ingredients.")
+                else:
+                    st.warning("Please select at least one ingredient.")
+        else:
+            st.warning("Model not loaded. Please load the model first to get personalized recommendations.")
+    else:
+        st.warning("No roommates available.")
 
 recipepage()
