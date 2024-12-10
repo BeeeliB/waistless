@@ -46,20 +46,6 @@ def load_ml_components():
         st.error(f"Error loading ML components: {e}")
         return False
 
-def fetch_recipe_link(recipe_name):
-    """Fetch a recipe link from TheMealDB API based on the recipe name."""
-    try:
-        response = requests.get(f"{THEMEALDB_URL}{recipe_name}")
-        if response.status_code == 200:
-            data = response.json()
-            meals = data.get("meals")
-            if meals:
-                return f"https://www.themealdb.com/meal/{meals[0]['idMeal']}"
-        return None
-    except Exception as e:
-        st.error(f"Error fetching recipe link: {e}")
-        return None
-
 def predict_recipe(ingredients):
     try:
         if not st.session_state["ml_model"]:
@@ -75,6 +61,20 @@ def predict_recipe(ingredients):
         }
     except Exception as e:
         st.error(f"Error predicting recipe: {e}")
+        return None
+
+def fetch_recipe_link(recipe_name):
+    """Fetch recipe link from TheMealDB based on recipe name."""
+    try:
+        response = requests.get(f"{THEMEALDB_URL}{recipe_name}")
+        if response.status_code == 200:
+            data = response.json()
+            meals = data.get("meals")
+            if meals:
+                return f"https://www.themealdb.com/meal/{meals[0]['idMeal']}"
+        return None
+    except Exception as e:
+        st.error(f"Error fetching recipe link: {e}")
         return None
 
 def recipepage():
@@ -105,17 +105,19 @@ def recipepage():
             )
             if st.button("Get Recommendation"):
                 if selected_ingredients:
-                    prediction = predict_recipe(selected_ingredients)
-                    if prediction:
-                        recipe_name = prediction["recipe"]
-                        st.write(f"Recommended Recipe: **{recipe_name}**")
-                        recipe_link = fetch_recipe_link(recipe_name)
-                        if recipe_link:
-                            st.write(f"[View Recipe Here]({recipe_link})")
+                    with st.spinner("Analyzing your preferences..."):
+                        prediction = predict_recipe(selected_ingredients)
+                        if prediction:
+                            recipe_name = prediction["recipe"]
+                            st.write(f"Recommended Recipe: **{recipe_name}**")
+                            link = fetch_recipe_link(recipe_name)
+                            if link:
+                                st.markdown(f"[View Recipe]({link})")
+                            else:
+                                st.warning("No link found for this recipe.")
                         else:
-                            st.warning("Could not find a recipe link for the predicted recipe.")
+                            st.warning("Could not generate a recommendation. Try different ingredients.")
                 else:
                     st.warning("Please select at least one ingredient.")
-
 
 recipepage()
