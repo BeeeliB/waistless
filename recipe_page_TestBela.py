@@ -184,13 +184,20 @@ def recipepage():
                                 recommended_recipe = prediction["recipe"]
                                 st.write(f"We recommend: **{recommended_recipe}** (Cuisine: {prediction['cuisine']})")
 
-                                # Fetch and display the link for the recommended recipe
-                                recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
-                                if recommended_recipe in recipe_links:
-                                    recipe_link = recipe_links[recommended_recipe]["link"]
-                                    st.write(f"View the recipe here: [**{recommended_recipe}**]({recipe_link})")
+                                # Fetch the recipe link for the recommended recipe
+                                api_response = requests.get(f"https://www.themealdb.com/api/json/v1/1/search.php?s={recommended_recipe}")
+                                if api_response.status_code == 200:
+                                    api_data = api_response.json()
+                                    meals = api_data.get("meals")
+                                    if meals:
+                                        # Display the link for the first matching recipe
+                                        meal = meals[0]
+                                        recipe_link = f"https://www.themealdb.com/meal/{meal['idMeal']}"
+                                        st.write(f"View the recipe here: [**{recommended_recipe}**]({recipe_link})")
+                                    else:
+                                        st.warning(f"No recipe found for '{recommended_recipe}' in the API.")
                                 else:
-                                    st.warning(f"Sorry, no direct link found for '{recommended_recipe}' in the inventory.")
+                                    st.error("Failed to fetch recipe details from TheMealDB.")
                             else:
                                 st.warning("Could not generate a recommendation. Try different ingredients.")
                     else:
@@ -200,4 +207,5 @@ def recipepage():
         else:
             st.warning("No roommates available.")
 
+        
 recipepage()
