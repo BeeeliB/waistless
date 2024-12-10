@@ -130,12 +130,12 @@ def recipepage():
     tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference Based"])
 
     with tab1:
-        selected_roommate = st.selectbox("Select a roommate:", st.session_state["roommates"])
+        selected_roommate = st.selectbox("Select a roommate:", st.session_state["roommates"], key="roommate_select")
         st.session_state["selected_user"] = selected_roommate
-        search_mode = st.radio("Search Mode:", ["Automatic", "Custom"])
+        search_mode = st.radio("Search Mode:", ["Automatic", "Custom"], key="search_mode_select")
         with st.form("recipe_form"):
             selected_ingredients = (
-                st.multiselect("Choose ingredients:", st.session_state["inventory"].keys())
+                st.multiselect("Choose ingredients:", st.session_state["inventory"].keys(), key="ingredient_select")
                 if search_mode == "Custom" else None
             )
             if st.form_submit_button("Get Recipes"):
@@ -144,7 +144,7 @@ def recipepage():
                 st.session_state["recipe_links"] = recipe_links
         if st.session_state["recipe_suggestions"]:
             selected_recipe = st.selectbox(
-                "Choose a recipe to cook:", ["Select..."] + st.session_state["recipe_suggestions"]
+                "Choose a recipe to cook:", ["Select..."] + st.session_state["recipe_suggestions"], key="recipe_select"
             )
             if selected_recipe != "Select...":
                 recipe_link = st.session_state["recipe_links"][selected_recipe]["link"]
@@ -162,7 +162,7 @@ def recipepage():
                 else:
                     st.error("Failed to load ML Model.")
             if st.session_state["ml_model"]:
-                selected_ingredients = st.multiselect("Select ingredients:", st.session_state["inventory"].keys())
+                selected_ingredients = st.multiselect("Select ingredients:", st.session_state["inventory"].keys(), key="pref_ingredient_select")
                 if st.button("Get Recommendation"):
                     if selected_ingredients:
                         with st.spinner("Analyzing your preferences..."):
@@ -184,17 +184,8 @@ def recipepage():
 
 def rate_recipe(recipe_title, recipe_link):
     st.subheader(f"Rate the recipe: {recipe_title}")
-    rating = st.slider("Rate with stars (1-5):", 1, 5)
-    if st.button("Rate Recipe"):
+    rating = st.slider("Rate with stars (1-5):", 1, 5, key=f"rate_{recipe_title}")
+    if st.button("Rate Recipe", key=f"rate_button_{recipe_title}"):
         user = st.session_state["selected_user"]
-        if user:
-            st.success(f"You rated '{recipe_title}' {rating} stars!")
-            st.session_state["cooking_history"].append({
-                "Person": user,
-                "Recipe": recipe_title,
-                "Rating": rating,
-                "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Link": recipe_link
-            })
 
 recipepage()
