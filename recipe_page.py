@@ -1,14 +1,6 @@
 import streamlit as st  # Creates app interface
-import requests  # To send HTTP requests for API
-import random  # Enables random selection
-import pandas as pd  # Library to handle data
-from datetime import datetime
 from tensorflow.keras.models import load_model
 import joblib
-import os
-
-# Replace Spoonacular API configuration with TheMealDB
-THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
 
 # Initialize session state variables
 if "ml_model" not in st.session_state:
@@ -47,12 +39,16 @@ def load_ml_components():
 # Recipe page
 def recipepage():
     st.title("Recipe Recommendations")
+
+    # Button to load ML components
     if st.button("Load Prediction Model"):
         load_ml_components()
 
+    # Check if the ML model is loaded before allowing further actions
     if st.session_state["ml_model"]:
         st.write("Model is ready for predictions!")
     else:
-        st.warning("Model not loaded.")
+        st.warning("Model not loaded. Please load the model first.")
 
+# Run the recipe page
 recipepage()
