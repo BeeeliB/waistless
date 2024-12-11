@@ -12,7 +12,7 @@ THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
 
 #initialize session state variables
 if "inventory" not in st.session_state:
-    st.session_state["inventory"] = {
+    st.session_state["inventory"] = {#store inventory items with quantity, unit, price details
         "Tomato": {"Quantity": 5, "Unit": "gram", "Price": 3.0},
         "Banana": {"Quantity": 3, "Unit": "gram", "Price": 5.0},
         "Onion": {"Quantity": 2, "Unit": "piece", "Price": 1.5},
@@ -21,31 +21,31 @@ if "inventory" not in st.session_state:
     }
 
 if "roommates" not in st.session_state:
-    st.session_state["roommates"] = ["Bilbo", "Frodo", "Gandalf"]
+    st.session_state["roommates"] = ["Bilbo", "Frodo", "Gandalf"] #example roomates
 if "selected_user" not in st.session_state:
-    st.session_state["selected_user"] = None
+    st.session_state["selected_user"] = None #curretnly selected user
 if "recipe_suggestions" not in st.session_state:
-    st.session_state["recipe_suggestions"] = []
+    st.session_state["recipe_suggestions"] = [] #store suggested recipes
 if "recipe_links" not in st.session_state:
-    st.session_state["recipe_links"] = {}
+    st.session_state["recipe_links"] = {} #store recipe links
 if "selected_recipe" not in st.session_state:
-    st.session_state["selected_recipe"] = None
+    st.session_state["selected_recipe"] = None #currently selected recipes
 if "selected_recipe_link" not in st.session_state:
-    st.session_state["selected_recipe_link"] = None
+    st.session_state["selected_recipe_link"] = None #link to selected recipe
 if "cooking_history" not in st.session_state:
-    st.session_state["cooking_history"] = []
+    st.session_state["cooking_history"] = [] # store history of cooked meals
 if "ml_model" not in st.session_state:
-    st.session_state["ml_model"] = None
+    st.session_state["ml_model"] = None #placeholder for ml model
 if "vectorizer" not in st.session_state:
-    st.session_state["vectorizer"] = None
+    st.session_state["vectorizer"] = None #placeholder for vectorizer
 if "label_encoder_cuisine" not in st.session_state:
-    st.session_state["label_encoder_cuisine"] = None
+    st.session_state["label_encoder_cuisine"] = None #placeholder cuisine encoder
 if "label_encoder_recipe" not in st.session_state:
-    st.session_state["label_encoder_recipe"] = None
+    st.session_state["label_encoder_recipe"] = None #placeholder for recipe ecnoder
 
-def custom_tokenizer(text):
-    return text.split(', ')
-
+def custom_tokenizer(text):#custom tokenizer for vectorizing ingredients
+    return text.split(', ') #split text by commas and spaces
+#load ML components
 def load_ml_components():
     """Load ML components."""
     try:
