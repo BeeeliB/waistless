@@ -86,3 +86,4 @@ def recipe_page():
             ingredients = st.multiselect("Select Ingredients", list(st.session_state["inventory"].keys()))
             if st.button("Get Recipe Recommendations"):
                 st.write("Prediction logic here...")
+recipe_page()
