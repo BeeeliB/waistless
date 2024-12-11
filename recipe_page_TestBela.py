@@ -5,12 +5,12 @@ import pandas as pd
 from datetime import datetime
 from tensorflow.keras.models import load_model #for loading trained ML models
 import joblib
-import tensorflow as tf
+import tensorflow as tf #deep learnig framework
 
-# Replace API configuration with TheMealDB
+#replace API configuration with TheMealDB
 THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
 
-# Initialize session state variables
+#initialize session state variables
 if "inventory" not in st.session_state:
     st.session_state["inventory"] = {
         "Tomato": {"Quantity": 5, "Unit": "gram", "Price": 3.0},
