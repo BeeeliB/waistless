@@ -4,51 +4,45 @@ from datetime import datetime # To handle timestamps for purchases and consumpti
 
 # Initialization of the session status for saving values between interactions, just for testing
 if "roommates" not in st.session_state:
-    st.session_state["roommates"] = ["Livio", "Flurin", "Anderin"] # Default roommates for testing
+    st.session_state["roommates"] = ["Livio", "Flurin", "Anderin"] #default roommates for testing
 if "inventory" not in st.session_state: 
-    st.session_state["inventory"] = {} # Dictionary to store inventory data
+    st.session_state["inventory"] = {} #dictionary to store inventory data
 if "expenses" not in st.session_state:
-    # Dictionary to track total expenses for each roommate
-    st.session_state["expenses"] = {mate: 0.0 for mate in st.session_state["roommates"]}
+    st.session_state["expenses"] = {mate: 0.0 for mate in st.session_state["roommates"]}#track total expenses (each roommate)
 if "purchases" not in st.session_state:
-    # Dictionary to log purchases made by each roommate
-    st.session_state["purchases"] = {mate: [] for mate in st.session_state["roommates"]}
+    st.session_state["purchases"] = {mate: [] for mate in st.session_state["roommates"]} #keep record purchases (each roomate)
 if "consumed" not in st.session_state:
-    # Dictionary to log consumed items for each roommate
-    st.session_state["consumed"] = {mate: [] for mate in st.session_state["roommates"]}
+    st.session_state["consumed"] = {mate: [] for mate in st.session_state["roommates"]} #keep record consumed items
 
-# Ensure that entries in expenses, purchases and consumption are initialized when adding or removing roommates
+#makes sure expenses, purchases and consumption entries are initialized when adding or removing roommates
 def ensure_roommate_entries():
     for mate in st.session_state["roommates"]:
-        if mate not in st.session_state["expenses"]: # Add missing expense entry
+        if mate not in st.session_state["expenses"]: #add missing expense entry
             st.session_state["expenses"][mate] = 0.0
-        if mate not in st.session_state["purchases"]: # Add missing purchase log
+        if mate not in st.session_state["purchases"]: #add missing purchase record
             st.session_state["purchases"][mate] = []
-        if mate not in st.session_state["consumed"]: # Add missing consumption log
+        if mate not in st.session_state["consumed"]: #add missing consumption record
             st.session_state["consumed"][mate] = []
 
-# Function to remove product from inventory
+#function to remove product from inventory
 def delete_product_from_inventory(food_item, quantity, unit, selected_roommate):
-    ensure_roommate_entries() # Ensure all roommate-related data is initialized
-    delete_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Records the current time
+    ensure_roommate_entries() #make sure all roommates data is initialized
+    delete_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S") #get current time
     
-    if food_item and quantity > 0 and selected_roommate:
-        # Check if the item already exists in inventory
-        if food_item in st.session_state["inventory"]: 
-            current_quantity = st.session_state["inventory"][food_item]["Quantity"]
-            current_price = st.session_state["inventory"][food_item]["Price"]
-            # Update the quantity and total price of the existing item
-            if quantity <= current_quantity:
-                # Calculate the price
+    if food_item and quantity > 0 and selected_roommate: #check if input valid
+        if food_item in st.session_state["inventory"]: #chekc if fooditems exist in inventory
+            current_quantity = st.session_state["inventory"][food_item]["Quantity"] #qt quantity fo item
+            current_price = st.session_state["inventory"][food_item]["Price"] #get total price
+            if quantity <= current_quantity: #check if there is enough quanity to remove
+                #calculate price
                 price_per_unit = current_price / current_quantity if current_quantity > 0 else 0
-                amount_to_deduct = price_per_unit * quantity
-                # Update inventory
+                amount_to_deduct = price_per_unit * quantity # calculate price to deduct
+                #update inventory
                 st.session_state["inventory"][food_item]["Quantity"] -= quantity
-                st.session_state["inventory"][food_item]["Price"] -= amount_to_deduct
-                st.session_state["expenses"][selected_roommate] -= amount_to_deduct
-                st.success(f"'{quantity}' of '{food_item}' has been removed.")
-                # Report the ingredients in consumed
-                st.session_state["consumed"][selected_roommate].append({
+                st.session_state["inventory"][food_item]["Price"] -= amount_to_deduct #update price
+                st.session_state["expenses"][selected_roommate] -= amount_to_deduct #deduct from roommates expenses
+                st.success(f"'{quantity}' of '{food_item}' has been removed.") #return success message
+                st.session_state["consumed"][selected_roommate].append({ #report ingredients consumed
                     "Product": food_item,
                     "Quantity": quantity,
                     "Price": amount_to_deduct,
@@ -56,12 +50,12 @@ def delete_product_from_inventory(food_item, quantity, unit, selected_roommate):
                     "Date": delete_time
                 })
                 # Remove item if quantity reaches zero
-                if st.session_state["inventory"][food_item]["Quantity"] <= 0:
+                if st.session_state["inventory"][food_item]["Quantity"] <= 0: #if quantitiy is 0 -> remove item
                     del st.session_state["inventory"][food_item]
             else:
-                st.warning("The quantity to remove exceeds the available quantity.") # Warning message
+                st.warning("The quantity to remove exceeds the available quantity.") #warn if quantity is too high. Cannot remove more than we have
         else:
-            st.warning("This item is not in the inventory.") # Warning message
+            st.warning("This item is not in the inventory.") #warn if item not in inventory
     else:
         st.warning("Please fill in all fields.") # Warning message
 
