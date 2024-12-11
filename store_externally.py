@@ -118,7 +118,7 @@ def authentication():
 # Function to automatically save wg data
 def auto_save():
     if "username" in st.session_state and st.session_state["username"]: #saves data only when a user is signed in
-        st.session_state["data"] = {
+        st.session_state["data"] = { #collect all data from the session
             "flate_name": st.session_state.get("flate_name", ""),
             "roommates": st.session_state.get("roommates", []),
             "setup_finished": st.session_state.get("setup_finished", False),
@@ -132,18 +132,18 @@ def auto_save():
             "cooking_history": st.session_state.get("cooking_history", []),
             "recipe_links": st.session_state.get("recipe_links", {})
         }
-        save_data(st.session_state["username"], st.session_state["data"]) # Function for saving user-data in a JSON file 
+        save_data(st.session_state["username"], st.session_state["data"]) #function for saving user-data in a JSON file 
 
 
 
-# Function to delete the account
+#function to delete the account
 def delete_account():
-    with st.expander("Delete account"):
-        st.warning("This action is irreversible. Deleting your account will remove all your data.")
-        confirm = st.button("Delete account")
+    with st.expander("Delete account"): #ection (expandable) to delete account
+        st.warning("This action is irreversible. Deleting your account will remove all your data.") #show warning
+        confirm = st.button("Delete account") #button to confirm deletion
         if confirm:
-            delete_data() 
-            st.session_state["logged_in"] = False # Used that we can sign in or sign up again
+            delete_data() #call delete data function
+            st.session_state["logged_in"] = False #log user out
 
 
 # Function to remove the user from the JSON file
