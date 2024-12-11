@@ -57,46 +57,46 @@ def delete_product_from_inventory(food_item, quantity, unit, selected_roommate):
         else:
             st.warning("This item is not in the inventory.") #warn if item not in inventory
     else:
-        st.warning("Please fill in all fields.") # Warning message
+        st.warning("Please fill in all fields.") #warning message when fileds empty
 
 # Function to add product to inventory
 def add_product_to_inventory(food_item, quantity, unit, price, selected_roommate):
-    ensure_roommate_entries()
-    purchase_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ensure_roommate_entries() #makes sure roomate date is ready
+    purchase_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S") #get current time
     if food_item in st.session_state["inventory"]:  # checks if the food is already in the inventory
-        st.session_state["inventory"][food_item]["Quantity"] += quantity
-        st.session_state["inventory"][food_item]["Price"] += price
+        st.session_state["inventory"][food_item]["Quantity"] += quantity #add to quantity
+        st.session_state["inventory"][food_item]["Price"] += price #add to total price
     else:
-        st.session_state["inventory"][food_item] = {"Quantity": quantity, "Unit": unit, "Price": price}
+        st.session_state["inventory"][food_item] = {"Quantity": quantity, "Unit": unit, "Price": price} #add new item
     
-    st.session_state["expenses"][selected_roommate] += price
-    st.session_state["purchases"][selected_roommate].append({
+    st.session_state["expenses"][selected_roommate] += price #add to roomates expenses
+    st.session_state["purchases"][selected_roommate].append({ #save the purchase
         "Product": food_item,
         "Quantity": quantity,
         "Price": price,
         "Unit": unit,
         "Date": purchase_time
     })
-    st.success(f"'{food_item}' has been added to the inventory, and {selected_roommate}'s expenses were updated.")
+    st.success(f"'{food_item}' has been added to the inventory, and {selected_roommate}'s expenses were updated.") #show succesful message
 
-# Main page function
+#main page function to manage fridge
 def fridge_page():
-    ensure_roommate_entries() # Ensure roommate-related data is ready
-    st.title("Inventory")  # Display the page title
+    ensure_roommate_entries() #make sure roommates data is initialized
+    st.title("Inventory")  # show the page title
 
     # Roommate selection
-    if st.session_state["roommates"]:
-        selected_roommate = st.selectbox("Select the roommate:", st.session_state["roommates"])
+    if st.session_state["roommates"]: #check if roommate exist
+        selected_roommate = st.selectbox("Select the roommate:", st.session_state["roommates"]) #dropdown roommate selction
     else:
-        st.warning("No roommates available.")
-        return # Exit the function if no roommates are defined
+        st.warning("No roommates available.") #warn if no roommates available
+        return #stop function
 
-    # Selection: Add or remove item from inventory
-    action = st.selectbox("Would you like to add or remove an item?", ["Add", "Remove"])
+    #select tp add or remove item from inventory
+    action = st.selectbox("Would you like to add or remove an item?", ["Add", "Remove"]) #dropdown toselet action
 
-    # If "Add" is selected, display input fields for adding an item
-    if action == "Add":
-        # Input fields for food item, quantity, unit, and price
+   
+    if action == "Add": #if "Add" is selected,show input fields for adding an item
+        #input fields for food item, quantity, unit, and price
         food_item = st.selectbox("Select a food item to add:", [
             'chicken', 'curry powder', 'coconut milk', 'onion', 'garlic', 'ginger',
             'beef', 'potatoes', 'carrots', 'onions', 'beef broth',
@@ -109,51 +109,50 @@ def fridge_page():
             'apples', 'cinnamon', 'lemon juice',
             'bread', 'parsley'
         ])
-        quantity = st.number_input("Quantity:", min_value=0.0)
-        unit = st.selectbox("Unit:", ["Pieces", "Liters", "Grams"])
-        price = st.number_input("Price (in CHF):", min_value=0.0)
+        quantity = st.number_input("Quantity:", min_value=0.0) #input quantity
+        unit = st.selectbox("Unit:", ["Pieces", "Liters", "Grams"]) #option to choose unit (dropdown)
+        price = st.number_input("Price (in CHF):", min_value=0.0) #input price
         
-        if st.button("Add item"): # Button to confirm adding the item
-            if food_item and quantity > 0 and price >= 0 and selected_roommate:
-                add_product_to_inventory(food_item, quantity, unit, price, selected_roommate)
+        if st.button("Add item"): #button to confirm adding item
+            if food_item and quantity > 0 and price >= 0 and selected_roommate: #check if fields are filled
+                add_product_to_inventory(food_item, quantity, unit, price, selected_roommate) #call function
             else:
-                st.warning("Please fill in all fields.")
+                st.warning("Please fill in all fields.") #warning if filed not all filled
     
-    elif action == "Remove": # If "Remove" is selected, display input fields for removing an item
-        if st.session_state["inventory"]:
-            # Selection of the food and quantity to be removed
-            food_item = st.selectbox("Select a food item to remove:", list(st.session_state["inventory"].keys()))
-            quantity = st.number_input("Quantity to remove:", min_value=1.0, step=1.0)
-            unit = st.session_state["inventory"][food_item]["Unit"]
-            if st.button("Remove item"): # Button to confirm removing the item
-                delete_product_from_inventory(food_item, quantity, unit, selected_roommate)
+    elif action == "Remove": #show input fields for removing an item, if "Remove" selected
+        if st.session_state["inventory"]:#check if invetory is not empty
+            food_item = st.selectbox("Select a food item to remove:", list(st.session_state["inventory"].keys())) #dropdown to seelct item to remove
+            quantity = st.number_input("Quantity to remove:", min_value=1.0, step=1.0) #input quantity to remove
+            unit = st.session_state["inventory"][food_item]["Unit"] #get unit
+            if st.button("Remove item"): #button to confirm removing item
+                delete_product_from_inventory(food_item, quantity, unit, selected_roommate) #if button clicked call delet function
         else:
-            st.warning("The inventory is empty.")
+            st.warning("The inventory is empty.") #warning if inventory empty
 
     # Display current inventory
-    if st.session_state["inventory"]:
-        st.write("Current Inventory:")
-        inventory_df = pd.DataFrame.from_dict(st.session_state["inventory"], orient='index') # Creates a DataFrame and sets food items as row labels
-        inventory_df = inventory_df.reset_index().rename(columns={'index': 'Food Item'}) # Move food item to the second column and rename the column title
+    if st.session_state["inventory"]: #check if invetory exist
+        st.write("Current Inventory:") #show inventory title
+        inventory_df = pd.DataFrame.from_dict(st.session_state["inventory"], orient='index') #convert inventory to dataframe
+        inventory_df = inventory_df.reset_index().rename(columns={'index': 'Food Item'}) #move food item to the second column and rename -> better readabilty
         st.table(inventory_df)
     else:
-        st.write("The inventory is empty.")
+        st.write("The inventory is empty.") #show message if inventory empty
 
     # Display total expenses per roommate
-    st.write("Total expenses per roommate:")
-    expenses_df = pd.DataFrame(list(st.session_state["expenses"].items()), columns=["Roommate", "Total Expenses (CHF)"]) #Generates a list of tuples and assigns column titles
+    st.write("Total expenses per roommate:") #show title for expenses
+    expenses_df = pd.DataFrame(list(st.session_state["expenses"].items()), columns=["Roommate", "Total Expenses (CHF)"]) #generate list of tuples -> assigns column titles
     st.table(expenses_df)
 
-    # Display purchases and consumed items per roommate
-    st.write("Purchases and Consumptions per roommate:")
-    for mate in st.session_state["roommates"]:
-        st.write(f"{mate}'s Purchases:")
-        purchases_df = pd.DataFrame(st.session_state["purchases"][mate])
-        st.table(purchases_df)
+    #display purchases and consumed items (for each per roommate)
+    st.write("Purchases and Consumptions per roommate:") #show title
+    for mate in st.session_state["roommates"]: #go thtrough roommates
+        st.write(f"{mate}'s Purchases:")# title for purchases of individual roommate
+        purchases_df = pd.DataFrame(st.session_state["purchases"][mate]) #convert purchase to dataframe
+        st.table(purchases_df) #show purchase as a table
         
-        st.write(f"{mate}'s Consumptions:")
-        consumed_df = pd.DataFrame(st.session_state["consumed"][mate])
-        st.table(consumed_df)
+        st.write(f"{mate}'s Consumptions:") #show title fpr consumtions of specific roommate
+        consumed_df = pd.DataFrame(st.session_state["consumed"][mate]) #convert consumtions to dataframe
+        st.table(consumed_df) #show consumtions as a table
 
-# Call the function to display the fridge page
+#call function to display fridge page
 fridge_page()
