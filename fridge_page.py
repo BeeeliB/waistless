@@ -19,9 +19,9 @@ def ensure_roommate_entries():
     for mate in st.session_state["roommates"]:
         if mate not in st.session_state["expenses"]: #add missing expense entry
             st.session_state["expenses"][mate] = 0.0
-        if mate not in st.session_state["purchases"]: #add missing purchase record
+        if mate not in st.session_state["purchases"]: #add missing purchase
             st.session_state["purchases"][mate] = []
-        if mate not in st.session_state["consumed"]: #add missing consumption record
+        if mate not in st.session_state["consumed"]: #add missing consumption
             st.session_state["consumed"][mate] = []
 
 #function to remove product from inventory
