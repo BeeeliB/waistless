@@ -7,32 +7,32 @@ from barcode_page import barcode_page
 from recipe_page import recipepage
 
 
-# Ensure all session state variables are initialized, just for testing
+#ensure all session state variables are initialized
 if "flate_name" not in st.session_state:
-    st.session_state["flate_name"] = ""
-if "roommates" not in st.session_state:
+    st.session_state["flate_name"] = "" #store name of flat
+if "roommates" not in st.session_state: #store list of roomates
     st.session_state["roommates"] = []
-if "setup_finished" not in st.session_state:
+if "setup_finished" not in st.session_state: #track if setup of flat is complete
     st.session_state["setup_finished"] = False
 if "page" not in st.session_state:
-    st.session_state["page"] = "settings"
+    st.session_state["page"] = "settings" #app starts on settings page so that roomates can be registered
 if "inventory" not in st.session_state:
-    st.session_state["inventory"] = {}
-if "expenses" not in st.session_state:
+    st.session_state["inventory"] = {} # track items in fridge
+if "expenses" not in st.session_state:#track expenses
     st.session_state["expenses"] = {}
-if "purchases" not in st.session_state:
+if "purchases" not in st.session_state:#track individual purchases
     st.session_state["purchases"] = {}
-if "consumed" not in st.session_state:
+if "consumed" not in st.session_state:#track consumed items
     st.session_state["consumed"] = {}
-if "recipe_suggestions" not in st.session_state:
+if "recipe_suggestions" not in st.session_state:#track a list
     st.session_state["recipe_suggestions"] = []
-if "selected_recipe" not in st.session_state:
+if "selected_recipe" not in st.session_state: #track currently selected recipe
     st.session_state["selected_recipe"] = None
-if "selected_recipe_link" not in st.session_state:
+if "selected_recipe_link" not in st.session_state: #store link for currently selected recipe
     st.session_state["selected_recipe_link"] = None
-if "cooking_history" not in st.session_state:
+if "cooking_history" not in st.session_state: #keep record of cooked meals
     st.session_state["cooking_history"] = []
-if "recipe_links" not in st.session_state:
+if "recipe_links" not in st.session_state: #track all recipe names and their links
     st.session_state["recipe_links"] = {}
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
@@ -41,36 +41,36 @@ if "username" not in st.session_state:
 if "data" not in st.session_state:
     st.session_state["data"] = {}
 
-# Function to register a user and save user in json
-def register_user(username, password):
-    if os.path.exists("users.json"): # Checks if there's already a file with the name of the user
-        with open("users.json", "r") as file: # Opens data in read modus and closes it afterwards immediately
-            users = json.load(file) # Change to python
+#register a user and save user in json
+def register_user(username, password): #function takes two arguments
+    if os.path.exists("users.json"): #checks if there's already a file with the name of the user
+        with open("users.json", "r") as file: #opens data in read modus ("r") and closes it afterwards immediately
+            users = json.load(file) #load file a content into users -> change to python
     else:
-        users = {}
+        users = {} #if user doen't exist create an empty dictionary
 
-    if username in users: 
-        st.error("Username already exists!")
-        return False
+    if username in users: #check if username already exists
+        st.error("Username already exists!")#show an error message if user already exists
+        return False #stop the function
     else:
-        users[username] = password # Username will be the key and password the value
-        with open("users.json", "w") as file: # Opens file in write modus
-            json.dump(users, file) # Write the data from the variable into the json file
-        return True
+        users[username] = password # #if username doesn't exist, add a new dictionary, username will be key
+        with open("users.json", "w") as file: #ppens file in write modus. "w" -> overwrite with new data
+            json.dump(users, file) # #save/write dictionary into file
+        return True #signal successful registration
 
-# Function to log in
+#function for user login
 def login_user(username, password):
-    if os.path.exists("users.json"):
-        with open("users.json", "r") as file:
-            users = json.load(file) 
+    if os.path.exists("users.json"):#check if file exists
+        with open("users.json", "r") as file: #open in read mode
+            users = json.load(file) #load user
     else:
-        st.error("No users found! Please sign up first.")
-        return False
+        st.error("No users found! Please sign up first.") #if user not found instrution to register
+        return False #stop function
     
-    # Checks if the user name exist and the password ist the right, if True then load the data
+    #checks if the user name exist and the password ist the right, if true then load the data
     if username in users and users[username] == password: 
-        st.session_state["logged_in"] = True
-        st.session_state["username"] = username
+        st.session_state["logged_in"] = True #mark user as logged in
+        st.session_state["username"] = username #
         st.session_state.update(load_data(username)) # updates account data
         return True
     else:
