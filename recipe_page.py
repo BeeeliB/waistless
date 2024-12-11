@@ -1,114 +1,113 @@
-import streamlit as st # Creates app interface
-import requests # To send http requests for API
-import random # Enables radom selection
-import pandas as pd # Library to handle data
+import streamlit as st #creates app interface
+import requests #to send http requests for API
+import random #enables radom selection
+import pandas as pd #library to handle data
 from datetime import datetime 
 
-# Add new imports for ML model
+# add new imports for ML model
 from tensorflow.keras.models import load_model
 import joblib
 import os
 import tensorflow as tf
 
-# Replace Spoonacular API configuration with TheMealDB
-THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'
+#replace Spoonacular API configuration with TheMealDB
+THEMEALDB_URL = 'https://www.themealdb.com/api/json/v1/1/filter.php'#URL to get recipe data
 
-# Initialization of session state variables and examples if nothing in session_state
+#initialization of session state variables and examples if nothing in session_state
 if "inventory" not in st.session_state:
     st.session_state["inventory"] = {
-        "Tomato": {"Quantity": 5, "Unit": "gram", "Price": 3.0}, # Variables for inventory
+        "Tomato": {"Quantity": 5, "Unit": "gram", "Price": 3.0}, #variables for inventory
         "Banana": {"Quantity": 3, "Unit": "gram", "Price": 5.0},
         "Onion": {"Quantity": 2, "Unit": "piece", "Price": 1.5},
         "Garlic": {"Quantity": 3, "Unit": "clove", "Price": 0.5},
         "Olive Oil": {"Quantity": 1, "Unit": "liter", "Price": 8.0},
     }
 
-# Initialize more session state variables for roommate and recipe-related data
-if "roommates" not in st.session_state: # Define examples if nothing added
+# initialize more session state variables for roommate and recipe-related data
+if "roommates" not in st.session_state: #define examples if nothing added
     st.session_state["roommates"] = ["Bilbo", "Frodo", "Gandalf der Weise"] # Example rommates
 if "selected_user" not in st.session_state:
-    st.session_state["selected_user"] = None # Keeps track of which user is selected
+    st.session_state["selected_user"] = None #keeps track of which user is selected
 if "recipe_suggestions" not in st.session_state:
-    st.session_state["recipe_suggestions"] = [] # Stores suggested recipe titles
+    st.session_state["recipe_suggestions"] = [] #stores suggested recipe titles
 if "recipe_links" not in st.session_state:
-    st.session_state["recipe_links"] = {} # Stores recipe links and extra data
+    st.session_state["recipe_links"] = {} #stores resipe links and extra data
 if "selected_recipe" not in st.session_state:
-    st.session_state["selected_recipe"] = None # The recipe the user decides to cook
+    st.session_state["selected_recipe"] = None #the recipe the user decides to cook
 if "selected_recipe_link" not in st.session_state:
-    st.session_state["selected_recipe_link"] = None # Link to the selected recipe
+    st.session_state["selected_recipe_link"] = None #link to the selected recipe
 if "cooking_history" not in st.session_state:
-    st.session_state["cooking_history"] = [] # History of recipes cooked and their ratings
+    st.session_state["cooking_history"] = [] #history of recipes cooked and their ratings
 
-# Initialize additional session state variables for ML predictions
+#initialize additional session state variables for ML predictions
 if "ml_model" not in st.session_state:
-    st.session_state["ml_model"] = None
+    st.session_state["ml_model"] = None #store ML model
 if "vectorizer" not in st.session_state:
-    st.session_state["vectorizer"] = None
+    st.session_state["vectorizer"] = None #store vectorizer for text data
 if "label_encoder_cuisine" not in st.session_state:
-    st.session_state["label_encoder_cuisine"] = None
+    st.session_state["label_encoder_cuisine"] = None #encoder for cuisine categories
 if "label_encoder_recipe" not in st.session_state:
-    st.session_state["label_encoder_recipe"] = None
+    st.session_state["label_encoder_recipe"] = None #encoder for recipe categories
 
-# Function to suggest recipes based on the inventory
+#function to suggest recipes based on inventory
 def get_recipes_from_inventory(selected_ingredients=None):
     """Get recipes from TheMealDB API based on ingredients"""
-    ingredients = selected_ingredients if selected_ingredients else list(st.session_state["inventory"].keys())
-    if not ingredients:
+    ingredients = selected_ingredients if selected_ingredients else list(st.session_state["inventory"].keys()) #use provided ingedients or inventory
+    if not ingredients: #check if inventory empty
         st.warning("Inventory is empty. Move your lazy ass to Migros!")
         return [], {}
     
-    recipe_titles = []
-    recipe_links = {}
-    displayed_recipes = 0
+    recipe_titles = [] #list to store recipe names
+    recipe_links = {} #dictinary tostore recipe links
+    displayed_recipes = 0 #counter-> limit number of disyplayed recipes
     
-    for ingredient in ingredients:
-        response = requests.get(f"{THEMEALDB_URL}?i={ingredient}")
+    for ingredient in ingredients: #loop thorugh each ingredient
+        response = requests.get(f"{THEMEALDB_URL}?i={ingredient}") #get recipes using the ingredient
         
-        if response.status_code == 200:
-            data = response.json()
-            meals = data.get("meals", [])
+        if response.status_code == 200: #if request succesful
+            data = response.json() #convert JSON data into python dic.
+            meals = data.get("meals", []) #get list of meals
             
-            random.shuffle(meals)
+            random.shuffle(meals) #shuffle meals -> adds randomness
             
-            for meal in meals:
-                if meal["strMeal"] not in recipe_titles:
-                    recipe_titles.append(meal["strMeal"])
-                    recipe_links[meal["strMeal"]] = {
+            for meal in meals: #loop through each meal
+                if meal["strMeal"] not in recipe_titles: #avoid duplicates
+                    recipe_titles.append(meal["strMeal"]) #add recipe title
+                    recipe_links[meal["strMeal"]] = { #store recipe link
                         "link": f"https://www.themealdb.com/meal/{meal['idMeal']}",
                         "missed_ingredients": []  # TheMealDB does not provide missed ingredients
                     }
-                    displayed_recipes += 1
+                    displayed_recipes += 1 #increment counter
                     
-                    if displayed_recipes >= 3:
+                    if displayed_recipes >= 3: #limit to 3 recipes
                         break
-            if displayed_recipes >= 3:
+            if displayed_recipes >= 3: #break outer loop if limit reahed
                 break
         else:
-            st.error("Error fetching recipes. Please try again later.")
+            st.error("Error fetching recipes. Please try again later.") #show error
             return [], {}
     
-    return recipe_titles, recipe_links
+    return recipe_titles, recipe_links #return list of recipes and their links
 
-# Function to let users rate a recipe
+#function to let users rate a recipe
 def rate_recipe(recipe_title, recipe_link):
-    st.subheader(f"Rate the recipe: {recipe_title}") # Show recipe title
-    st.write(f"**{recipe_title}**: ([View Recipe]({recipe_link}))") # Provide a clickable link
-    # Slider to select a rating from 1 to 5
-    rating = st.slider("Rate with stars (1-5):", 1, 5, key=f"rating_{recipe_title}")
+    st.subheader(f"Rate the recipe: {recipe_title}") # show recipe title
+    st.write(f"**{recipe_title}**: ([View Recipe]({recipe_link}))") #provide a clickable link
+    rating = st.slider("Rate with stars (1-5):", 1, 5, key=f"rating_{recipe_title}") #rating slider
     
-    if st.button("Submit rating"): # Button to submit the rating
-        user = st.session_state["selected_user"] # Get the selected user
+    if st.button("Submit rating"): #button to submit the rating
+        user = st.session_state["selected_user"] #get the selected user
         if user:
-            st.success(f"You have rated '{recipe_title}' with {rating} stars!") # Success message
-            st.session_state["cooking_history"].append({ # Creates a "Cookbook" with history of rating
-                "Person": user, # Choosen user - under which rating is stored
+            st.success(f"You have rated '{recipe_title}' with {rating} stars!") # show success message
+            st.session_state["cooking_history"].append({ # creates a "Cookbook" with history of rating
+                "Person": user, # choosen user - under which rating is stored
                 "Recipe": recipe_title,
                 "Rating": rating,
                 "Link": recipe_link,
                 "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Timestamp
             })
         else:
-            st.warning("Please select a user first.") # Warning message
+            st.warning("Please select a user first.") # warning message
 
 
 def custom_tokenizer(text):
