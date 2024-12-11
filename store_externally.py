@@ -146,31 +146,29 @@ def delete_account():
             st.session_state["logged_in"] = False #log user out
 
 
-# Function to remove the user from the JSON file
+#function to remove the user from the JSON file
 def delete_data():
-    username = st.session_state.get("username")
+    username = st.session_state.get("username") #get logged in username
     if username:
-        # Remove the user-specific data: username and password
-        if os.path.exists("users.json"):
-            with open("users.json", "r") as file: # Opens data in read modus and closes it afterwards immediately
-                users = json.load(file)
+        if os.path.exists("users.json"): #check if users json file exists
+            with open("users.json", "r") as file: #opens data in read modus
+                users = json.load(file) #load the user
             if username in users:
-                del users[username] # Removes the user name from the dictionary
+                del users[username] #removes user from dictionary
                 with open("users.json", "w") as file: # Opens the file in write mode and overwrites the data
-                    json.dump(users, file)
+                    json.dump(users, file) #save updated users
         
-        # Removing the user-specific data file: inventory expenses...
-        data_file = f"{username}_data.json"
-        if os.path.exists(data_file):
-            os.remove(data_file)
-    st.session_state.clear()
+        # Removing the user-specific data file: inventory, expenses...
+        data_file = f"{username}_data.json" #generate users data file 
+        if os.path.exists(data_file): #check if file exists
+            os.remove(data_file) #delete users data file
+    st.session_state.clear() #clear session state data
         
 
-# Display of the main page
-if st.session_state["logged_in"]:
+#logic of main page
+if st.session_state["logged_in"]: #show main content and sidebar only when logged in
 
-    # Sidebar navigation without account selection
-    st.sidebar.title("Navigation")
+    st.sidebar.title("Navigation") #sidebar title
     if st.sidebar.button("Overview"):
         st.session_state["page"] = "overview"
     if st.sidebar.button("Fridge"):
@@ -181,37 +179,36 @@ if st.session_state["logged_in"]:
         st.session_state["page"] = "recipes"
     if st.sidebar.button("Settings"):
         st.session_state["page"] = "settings"
-    if st.sidebar.button("Log Out", type="primary"): # Log out button
-        st.session_state["logged_in"] = False 
-        st.session_state["username"] = None
-        st.session_state["data"] = {}
+    if st.sidebar.button("Log Out", type="primary"): #log out button
+        st.session_state["logged_in"] = False #log user out
+        st.session_state["username"] = None #clear username
+        st.session_state["data"] = {} #clear data
 
-    # Page display logic for the selected page
+    #page display logic for the selected page (sidebar)
     if st.session_state["page"] == "overview":
-        st.title(f"Overview: {st.session_state['flate_name']}")
-        st.write("Welcome to your WG overview page!")
-        auto_save()  # Automatically save data
-    elif st.session_state["page"] == "fridge":
+        st.title(f"Overview: {st.session_state['flate_name']}") #show overview page
+        st.write("Welcome to your WG overview page!") #Welcome message
+        auto_save()  #save data automatically
+    elif st.session_state["page"] == "fridge": #show fridge page
         fridge_page()
-        auto_save()  # Automatically save data
-    elif st.session_state["page"] == "scan":
+        auto_save()  #save data automatically
+    elif st.session_state["page"] == "scan": #show barcode scanning page
         barcode_page()
-        auto_save()  # Automatically save data
-    elif st.session_state["page"] == "recipes":
+        auto_save()  #save data automatically
+    elif st.session_state["page"] == "recipes": #show recipe page
         recipepage()
-        auto_save()  # Automatically save data
+        auto_save()  #save data automatically
     elif st.session_state["page"] == "settings":
-        if not st.session_state["setup_finished"]:
+        if not st.session_state["setup_finished"]: #check if setup complete
             if st.session_state["flate_name"] == "":
-                setup_flat_name()
+                setup_flat_name() #show wg name setup page
             else:
-                setup_roommates()
+                setup_roommates() #show roommate setup page
         else:
-            settingspage()
-            delete_account()
-        auto_save()  # Automatically save data
+            settingspage() #show settingspage
+            delete_account() #option to delete account
+        auto_save()  #save automatically
 else:
-    # Sidebar with account selection
-    st.title("Wasteless")
-    st.write("Please sign in or sign up to continue.")
-    authentication()
+    st.title("Wasteless") #show app title
+    st.write("Please sign in or sign up to continue.") #message for users authenticated
+    authentication() #show authentication options
