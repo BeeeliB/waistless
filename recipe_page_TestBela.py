@@ -50,77 +50,79 @@ def load_ml_components():
     """Load ML components."""
     try:
         if st.session_state["ml_model"] is None:
-            st.session_state["ml_model"] = load_model(
+            st.session_state["ml_model"] = load_model( #load ML model with custom tokenizer
                 'models2/recipe_model.h5',
                 custom_objects={"custom_tokenizer": custom_tokenizer}
             )
-        if st.session_state["vectorizer"] is None:
+        if st.session_state["vectorizer"] is None:#load the TF-IDF vectorizer
             st.session_state["vectorizer"] = joblib.load('models2/tfidf_ingredients.pkl')
         if st.session_state["label_encoder_cuisine"] is None:
-            st.session_state["label_encoder_cuisine"] = joblib.load('models2/label_encoder_cuisine.pkl')
+            st.session_state["label_encoder_cuisine"] = joblib.load('models2/label_encoder_cuisine.pkl')#load label encoder for cuisines
         if st.session_state["label_encoder_recipe"] is None:
-            st.session_state["label_encoder_recipe"] = joblib.load('models2/label_encoder_recipe.pkl')
+            st.session_state["label_encoder_recipe"] = joblib.load('models2/label_encoder_recipe.pkl')#load label encoder for recipes
         return True
     except Exception as e:
         st.error(f"Error loading ML components: {e}")
         return False
-
+# get recipes from TheMealDB
 def get_recipes_from_inventory(selected_ingredients=None):
     """Fetch recipes from TheMealDB."""
     try:
-        ingredients = selected_ingredients if selected_ingredients else list(st.session_state["inventory"].keys())
+        ingredients = selected_ingredients if selected_ingredients else list(st.session_state["inventory"].keys()) #use selected ingredients or default to all inventory items
         if not ingredients:
             st.warning("Inventory is empty. Please add some items.")
             return [], {}
 
-        recipe_titles = []
-        recipe_links = {}
+        recipe_titles = [] #list to store recipe titles
+        recipe_links = {} #dictionary to store recipe links
 
         for ingredient in ingredients:
-            response = requests.get(f"{THEMEALDB_URL}?i={ingredient}")
+            response = requests.get(f"{THEMEALDB_URL}?i={ingredient}")  #make an API request for each ingredient
             if response.status_code != 200:
                 st.error(f"Failed to fetch recipes for {ingredient}.")
                 continue
-            meals = response.json().get("meals", [])
+            meals = response.json().get("meals", []) # jSON into python dic.
             if not meals:
-                continue
-            random.shuffle(meals)
+                continue #skip if no meals found
+            random.shuffle(meals) #shuffle meals to randomize suggestions
             for meal in meals:
-                if meal["strMeal"] not in recipe_titles:
+                if meal["strMeal"] not in recipe_titles: #avoid duplicates
                     recipe_titles.append(meal["strMeal"])
                     recipe_links[meal["strMeal"]] = {
                         "link": f"https://www.themealdb.com/meal/{meal['idMeal']}"
                     }
-                    if len(recipe_titles) >= 3:
+                    if len(recipe_titles) >= 3: #limit to 3 recipes
                         break
         return recipe_titles, recipe_links
     except Exception as e:
-        st.error(f"Error fetching recipes: {e}")
+        st.error(f"Error fetching recipes: {e}") #handle errors during API requests
         return [], {}
 
-def predict_recipe(ingredients):
+def predict_recipe(ingredients):#predict recipes using the ML model
     """Predict recipes using ML model."""
     try:
         if not st.session_state["ml_model"]:
             raise ValueError("ML Model not loaded.")
-        ingredients_text = ', '.join(ingredients)
-        ingredients_vec = st.session_state["vectorizer"].transform([ingredients_text]).toarray()
-        predictions = st.session_state["ml_model"].predict(ingredients_vec)
-        cuisine_index = predictions[0].argmax()
-        recipe_index = predictions[1].argmax()
+        ingredients_text = ', '.join(ingredients) #convert ingredients to single string
+        ingredients_vec = st.session_state["vectorizer"].transform([ingredients_text]).toarray() #transform ingredients using  vectorizer
+        predictions = st.session_state["ml_model"].predict(ingredients_vec) #make predictions with ML model
+        cuisine_index = predictions[0].argmax()  #extract predicted cuisine...
+        recipe_index = predictions[1].argmax() #... and recipe
         return {
             "recipe": st.session_state["label_encoder_recipe"].inverse_transform([recipe_index])[0],
             "cuisine": st.session_state["label_encoder_cuisine"].inverse_transform([cuisine_index])[0]
         }
     except Exception as e:
-        st.error(f"Error making prediction: {e}")
+        st.error(f"Error making prediction: {e}") #handle prediction errors
         return None
-
+    
+#rate a recipe
 def rate_recipe(recipe_title, recipe_link):
     """Provide a rating slider for the selected recipe."""
     st.subheader(f"Rate the recipe: {recipe_title}")
-    rating = st.slider("Rate with stars (1-5):", 1, 5)
+    rating = st.slider("Rate with stars (1-5):", 1, 5) #add a slider for ratings
     if st.button("Rate Recipe"):
+         #save the rating to cooking history
         user = st.session_state["selected_user"]
         if user:
             st.success(f"You rated '{recipe_title}' {rating} stars!")
@@ -132,26 +134,27 @@ def rate_recipe(recipe_title, recipe_link):
                 "Link": recipe_link
             })
 
+#main recipe page function
 def recipepage():
-    st.title("Recipe Recommendation App")
-    tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference Based"])
+    st.title("Recipe Recommendation App") #title
+    tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference Based"]) #create 2 tabs
 
-    # Tab 1: Standard Search
-    with tab1:
+    #Tab 1, Standard Search
+    with tab1: #select roommate
         selected_roommate = st.selectbox("Select a roommate:", st.session_state["roommates"])
         st.session_state["selected_user"] = selected_roommate
-        search_mode = st.radio("Search Mode:", ["Automatic", "Custom"])
+        search_mode = st.radio("Search Mode:", ["Automatic", "Custom"]) #choose search mode
         with st.form("recipe_form"):
-            selected_ingredients = (
+            selected_ingredients = ( #select ingredients if in custom mode
                 st.multiselect("Choose ingredients:", st.session_state["inventory"].keys())
                 if search_mode == "Custom" else None
             )
             if st.form_submit_button("Get Recipes"):
-                recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients)
+                recipe_titles, recipe_links = get_recipes_from_inventory(selected_ingredients) #get recipes based on ingredients
                 st.session_state["recipe_suggestions"] = recipe_titles
                 st.session_state["recipe_links"] = recipe_links
         if st.session_state["recipe_suggestions"]:
-            selected_recipe = st.selectbox(
+            selected_recipe = st.selectbox( #allow user to select recipe
                 "Choose a recipe to cook:", ["Select..."] + st.session_state["recipe_suggestions"]
             )
             if selected_recipe != "Select...":
@@ -159,32 +162,32 @@ def recipepage():
                 st.write(f"[View Recipe Here]({recipe_link})")
                 rate_recipe(selected_recipe, recipe_link)
 
-    # Tab 2: Preference-Based Recommendations
+    # tab 2, recommendations based on preference
     with tab2:
         if st.session_state["roommates"]:
             st.subheader("🎯 Get Personalized Recipe Recommendations")
             selected_roommate = st.selectbox("Select your name:", st.session_state["roommates"], key="pref_roommate")
             st.session_state["selected_user"] = selected_roommate
 
-            # Load the ML Model
+            #load ML Model
             if st.button("Load ML Model"):
                 if load_ml_components():
                     st.success("ML Model loaded successfully!")
                 else:
                     st.error("Failed to load ML Model. Please try again.")
 
-            # Check if ML Model is loaded
+            # check if ML Model is loaded
             if st.session_state["ml_model"]:
                 selected_ingredients = st.multiselect("Select ingredients:", st.session_state["inventory"].keys())
                 if st.button("Get Recommendation"):
                     if selected_ingredients:
                         with st.spinner("Analyzing your preferences..."):
-                            prediction = predict_recipe(selected_ingredients)
+                            prediction = predict_recipe(selected_ingredients) #make a prediction using ML model
                             if prediction:
                                 recommended_recipe = prediction["recipe"]
                                 st.write(f"We recommend: **{recommended_recipe}** (Cuisine: {prediction['cuisine']})")
 
-                                # Fetch the recipe link for the recommended recipe
+                                #get the recipe link for the recommended recipe
                                 api_response = requests.get(f"https://www.themealdb.com/api/json/v1/1/search.php?s={recommended_recipe}")
                                 if api_response.status_code == 200:
                                     api_data = api_response.json()
