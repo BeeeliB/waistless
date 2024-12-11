@@ -3,7 +3,7 @@ import requests
 import random
 import pandas as pd
 from datetime import datetime
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import load_model #for loading trained ML models
 import joblib
 import tensorflow as tf
 
