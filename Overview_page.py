@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px  # Using Plotly for enhanced charting
+import plotly.express as px  #Plotly is used for charting
 from datetime import datetime
 
-# Initialize session state keys
+#initialize session state keys
 if "roommates" not in st.session_state: #check if roommates exists in session state
     st.session_state["roommates"] = ["Livio", "Flurin", "Anderin"]  #initialize with example roommates
 if "expenses" not in st.session_state: #check if expenses exist in session state
@@ -14,11 +14,11 @@ if "consumed" not in st.session_state:#check if consumed goods exist in session 
     st.session_state["consumed"] = {mate: [] for mate in st.session_state["roommates"]} #initialize consumtion (per roommate)
 
 
-# Overview page function
+#overview page function
 def overview_page():
     st.title("Flatmate Overview") #set page title
 
-    # Chart 1: Total Expenses by Flatmate (Bar Chart)
+    #chart 1: total expenses by flatmate -> bar chart
     st.subheader("1. Total Expenses by Flatmate") #add subheader for chart
     expense_df = pd.DataFrame(list(st.session_state["expenses"].items()), columns=["Roommate", "Total Expenses (CHF)"]) #convert expenses to dataframe
     if not expense_df.empty: #check if data available
@@ -28,10 +28,10 @@ def overview_page():
         st.write("No expense data available.") #if no data -> display message
 
 
-    # Chart 2: Monthly Purchases by Flatmate (Line Chart)
+    #chart 2: monthly purchases by flatmate -> line chart
     st.subheader("2. Monthly Purchases by Flatmate") #add subheader for chart
 
-    # Step 1: Collect purchase data
+    #step 1:collect purchase data
     purchases_data = [] #initialize empty list to store data of purchases
     for mate in st.session_state["roommates"]: #go over each roommate
         purchases_data.extend([ #extend data list with purchase details
@@ -43,7 +43,7 @@ def overview_page():
             for purchase in st.session_state["purchases"][mate] #loop through roomatess purchases
         ])
 
-    # Step 2: Create DataFrame
+    #step 2: create dataframe
     purchases_df = pd.DataFrame(purchases_data) #convert purchase data into dataframe
 
     if not purchases_df.empty: #check if data available
@@ -51,7 +51,7 @@ def overview_page():
         purchases_df["Date"] = pd.to_datetime(purchases_df["Date"], errors="coerce")  # convert values in "date" to datetime ebjects 
     
         
-        # Step 4: Filter for the current month and year
+        #step 4: filter for the current month and year
         current_month = datetime.now().month #get month
         current_year = datetime.now().year #get year
         purchases_df = purchases_df[ #filter dataframe for current month & year
@@ -59,7 +59,7 @@ def overview_page():
             (purchases_df["Date"].dt.year == current_year)
         ]
 
-        # Step 5: Group data by date date and roommate
+        #step 5: group data by date date and roommate
         daily_purchases = purchases_df.groupby([purchases_df["Date"].dt.date, "Roommate"])["Total"].sum().unstack(fill_value=0)
 
         # Step 6: reshape for plotly (Convert to long format for Plotly)
@@ -71,7 +71,7 @@ def overview_page():
 
         
 
-        # Step 7: Plot
+        # step 7: visualize data
         if not daily_purchases_long.empty: #check if reshaped data available
             fig2 = px.line(
                 daily_purchases_long,
@@ -90,7 +90,7 @@ def overview_page():
 
 
 
-    # Chart 3: Total Consumption by Flatmate (Pie Chart)
+    #chart 3: total consumption by flatmate -> pie chart
     st.subheader("3. Total Consumption by Flatmate") #add a subheader for chart
     consumption_data = {mate: sum([item["Price"] for item in st.session_state["consumed"][mate]]) #calculate consumtion (per roommmate)
                         for mate in st.session_state["roommates"]}
@@ -104,7 +104,7 @@ def overview_page():
     else:
         st.write("No consumption data available.") #message if no consumtion data
 
-    # Chart 4: Inventory Summary (Stacked Bar Chart)
+    #chart 4: inventory summary-> stacked bar chart)
     st.subheader("4. Inventory Value by Roommate") #add subhead for chart
     inventory_data = [] #initialize empty list for inventory data
     for mate in st.session_state["roommates"]: #go trough each roommate
