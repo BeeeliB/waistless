@@ -1,8 +1,8 @@
-import streamlit as st # Streamlit for building the user interface
-import pandas as pd # Library to handle data
-from datetime import datetime # To handle timestamps for purchases and consumption
+import streamlit as st 
+import pandas as pd 
+from datetime import datetime #timestamps for purchases & consumption
 
-# Initialization of the session status for saving values between interactions, just for testing
+#initialization of the session status for saving values between interactions, just for testing
 if "roommates" not in st.session_state:
     st.session_state["roommates"] = ["Livio", "Flurin", "Anderin"] #default roommates for testing
 if "inventory" not in st.session_state: 
@@ -59,7 +59,7 @@ def delete_product_from_inventory(food_item, quantity, unit, selected_roommate):
     else:
         st.warning("Please fill in all fields.") #warning message when fileds empty
 
-# Function to add product to inventory
+#function to add product to inventory
 def add_product_to_inventory(food_item, quantity, unit, price, selected_roommate):
     ensure_roommate_entries() #makes sure roomate date is ready
     purchase_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S") #get current time
@@ -84,14 +84,14 @@ def fridge_page():
     ensure_roommate_entries() #make sure roommates data is initialized
     st.title("Inventory")  # show the page title
 
-    # Roommate selection
+    #roommate selection
     if st.session_state["roommates"]: #check if roommate exist
         selected_roommate = st.selectbox("Select the roommate:", st.session_state["roommates"]) #dropdown roommate selction
     else:
         st.warning("No roommates available.") #warn if no roommates available
         return #stop function
 
-    #select tp add or remove item from inventory
+    #select to add or remove item from inventory
     action = st.selectbox("Would you like to add or remove an item?", ["Add", "Remove"]) #dropdown toselet action
 
    
@@ -129,7 +129,7 @@ def fridge_page():
         else:
             st.warning("The inventory is empty.") #warning if inventory empty
 
-    # Display current inventory
+    #show inventory
     if st.session_state["inventory"]: #check if invetory exist
         st.write("Current Inventory:") #show inventory title
         inventory_df = pd.DataFrame.from_dict(st.session_state["inventory"], orient='index') #convert inventory to dataframe
@@ -138,12 +138,12 @@ def fridge_page():
     else:
         st.write("The inventory is empty.") #show message if inventory empty
 
-    # Display total expenses per roommate
+    #show total expenses per roommate
     st.write("Total expenses per roommate:") #show title for expenses
     expenses_df = pd.DataFrame(list(st.session_state["expenses"].items()), columns=["Roommate", "Total Expenses (CHF)"]) #generate list of tuples -> assigns column titles
     st.table(expenses_df)
 
-    #display purchases and consumed items (for each per roommate)
+    #show purchases and consumed items (for each per roommate)
     st.write("Purchases and Consumptions per roommate:") #show title
     for mate in st.session_state["roommates"]: #go thtrough roommates
         st.write(f"{mate}'s Purchases:")# title for purchases of individual roommate
