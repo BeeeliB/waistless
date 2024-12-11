@@ -101,23 +101,23 @@ def authentication():
         password = st.sidebar.text_input("Password", type="password") #input field password
 
         if account == "Sign up": #if user selects sign up
-            if st.sidebar.button("Sign up"):
-                if register_user(username, password): # Function to register user
-                    st.success("Successfully registered! Please sign in.")
-        elif account == "Sign in":
-            if st.sidebar.button("Sign in"):
-                if login_user(username, password): # Function to sign in
-                    st.success(f"Welcome, {username}!")
-                    st.session_state["logged_in"] = True
-                    st.session_state["username"] = username
+            if st.sidebar.button("Sign up"): #button to confirm sign up
+                if register_user(username, password): #call function to register user
+                    st.success("Successfully registered! Please sign in.") #show message
+        elif account == "Sign in": #if usr selects sign in
+            if st.sidebar.button("Sign in"): #button to confirm sign in
+                if login_user(username, password): #call function to sign in
+                    st.success(f"Welcome, {username}!") #show message with username
+                    st.session_state["logged_in"] = True #set logged in = true -> indicate user is authenticated
+                    st.session_state["username"] = username #store logged in username in sesstion state
                     
                     # load data from JSON file into session_state
-                    st.session_state["data"] = load_data(username)
-                    st.session_state.update(st.session_state["data"])
+                    st.session_state["data"] = load_data(username) #call function to load user data
+                    st.session_state.update(st.session_state["data"]) #update session state with loaded data
 
-# Function to automatically save flat data
+# Function to automatically save wg data
 def auto_save():
-    if "username" in st.session_state and st.session_state["username"]: # Saves data only when a user is signed in
+    if "username" in st.session_state and st.session_state["username"]: #saves data only when a user is signed in
         st.session_state["data"] = {
             "flate_name": st.session_state.get("flate_name", ""),
             "roommates": st.session_state.get("roommates", []),
