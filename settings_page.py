@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Initialization of session state variables
+#initialization of session state variables
 if "flate_name" not in st.session_state: #initlialize flat name if not set
     st.session_state["flate_name"] = ""  
 if "roommates" not in st.session_state:  #initlialize roommate if not set
@@ -8,7 +8,7 @@ if "roommates" not in st.session_state:  #initlialize roommate if not set
 if "setup_finished" not in st.session_state: # use to get to the initial setup
     st.session_state["setup_finished"] = False
 
-# Function for app setup: Flat name
+#function for flat name setup
 def setup_flat_name():
     st.title("🏠 Wasteless App - Setup") #display the app title
     flate_name = st.text_input("Please enter your flat name") #input field for flat name
@@ -19,7 +19,7 @@ def setup_flat_name():
         else:
             st.warning("Please enter a flat name") #message if no flat name was entered
 
-# Function for app setup: rooomates
+#function for app setup: rooomates
 def setup_roommates():
     st.title(f"Welcome to {st.session_state['flate_name']}!") #show flat name in title which was previsously set up
     room_mate = st.text_input("Please enter the name of a roommate", key="room_mate_input")#input for name of roommates
@@ -30,7 +30,7 @@ def setup_roommates():
         st.success("Congratulations, your settings are done.") #show a message
         st.session_state["setup_finished"] = True #mark setup as finished
 
-# Function for adding a roommate
+# function for adding a roommate
 def add_roommate(room_mate):
     if room_mate and room_mate not in st.session_state["roommates"]: # Checks if room_mate is not empty and not already in the list
         st.session_state["roommates"].append(room_mate) #add roommate to list
@@ -38,52 +38,52 @@ def add_roommate(room_mate):
     elif room_mate in st.session_state["roommates"]: # if roomate already exists
         st.warning(f"Roommate {room_mate} is already in the list!") #return warning message
 
-# Function to display the roommates
+#function to display the roommates
 def display_roommates():
-    if st.session_state["roommates"]:
-        st.write("Current roommates:")
-        for mate in st.session_state["roommates"]:
-            st.write(f"- {mate}")
+    if st.session_state["roommates"]: #checks if there are roommates
+        st.write("Current roommates:") #display the header
+        for mate in st.session_state["roommates"]: #go trough roommates
+            st.write(f"- {mate}") #show the roomates
 
-# Function to change the flate name
+#function to change the flate name
 def change_flat_name():
-    with st.expander("Flat name"):
-        flate_name = st.text_input("Please enter your flat name")
-        if st.button("Change flat name"):
-            if flate_name:
-                st.session_state["flate_name"] = flate_name
-                st.success(f"You successfully changed your flat name to {flate_name}!")
+    with st.expander("Flat name"): #section to change flat name (expandable)
+        flate_name = st.text_input("Please enter your flat name") #input for new flat name
+        if st.button("Change flat name"): #confirm change with button
+            if flate_name: #check ifname is valit
+                st.session_state["flate_name"] = flate_name #save new flat name
+                st.success(f"You successfully changed your flat name to {flate_name}!") #show success message
             else:
-                st.warning("Please enter a new flat name")
+                st.warning("Please enter a new flat name") #warning if no name was entered
 
-# Function for managing roommates
+#function for managing roommates
 def manage_roommates():
-    with st.expander("Roommates"):
-        room_mate = st.text_input("Please enter the name of a roommate", key="new_room_mate_input")
-        if st.button("Add new roommate"):
-            add_roommate(room_mate)
-        remove_roommate()
-        display_roommates()
+    with st.expander("Roommates"): #section (expandable) for roomates
+        room_mate = st.text_input("Please enter the name of a roommate", key="new_room_mate_input") #input option to add roommates
+        if st.button("Add new roommate"): #button to add roommate
+            add_roommate(room_mate) #call function to add roomate
+        remove_roommate() #remove roommate
+        display_roommates() #show roommates
 
-# function to remove a roommate
-def remove_roommate():
+#function to remove a roommate
+def remove_roommate(): #check if there are roommates
     if st.session_state["roommates"]:
-        roommate_to_remove = st.selectbox("Select a roommate to remove", st.session_state["roommates"])
-        if st.button("Remove roommate"):
-            if roommate_to_remove in st.session_state["roommates"]:
-                st.session_state["roommates"].remove(roommate_to_remove)
-                st.success(f"Roommate {roommate_to_remove} has been removed!")
+        roommate_to_remove = st.selectbox("Select a roommate to remove", st.session_state["roommates"]) #dropdown for selecting roommate
+        if st.button("Remove roommate"): #button to remove roommate
+            if roommate_to_remove in st.session_state["roommates"]: #check if roommat exists
+                st.session_state["roommates"].remove(roommate_to_remove) #remove roommate from list
+                st.success(f"Roommate {roommate_to_remove} has been removed!") #show success message
 
-# settings page when the setup is completed
+#settings page when setup completed
 def settingspage():
-    change_flat_name()
-    manage_roommates()
+    change_flat_name() #option to change flat name
+    manage_roommates() #manage roommates
 
-#settingspage
-if not st.session_state["setup_finished"]:
-    if st.session_state["flate_name"] == "":
+#settingspage main logic
+if not st.session_state["setup_finished"]: #check if setup not finished
+    if st.session_state["flate_name"] == "": #if no flat name is set up, start with flat name setup
         setup_flat_name()
     else:
-        setup_roommates()
+        setup_roommates() #if falt nanme is already set up proceed with setup of roommates
 else:
-    settingspage()
+    settingspage() #show settingspage once setup is complete
