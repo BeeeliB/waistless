@@ -209,6 +209,5 @@ def recipepage():
                 st.warning("Model not loaded. Please load the model first.")
         else:
             st.warning("No roommates available.")
-
         
 recipepage()
