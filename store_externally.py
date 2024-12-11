@@ -41,7 +41,7 @@ if "username" not in st.session_state:
 if "data" not in st.session_state:
     st.session_state["data"] = {}
 
-#register a user and save user in json
+#register user and save user in json
 def register_user(username, password): #function takes two arguments
     if os.path.exists("users.json"): #checks if there's already a file with the name of the user
         with open("users.json", "r") as file: #opens data in read modus ("r") and closes it afterwards immediately
@@ -77,7 +77,7 @@ def login_user(username, password):
         st.error("Incorrect username or password!") #show error fi input incorrect
         return False
 
-# Function for savin Wg data like roommates,fridge inventory, etc in Json File
+#function for savin Wg data like roommates,fridge inventory, etc in Json File
 def save_data(username, data):
     data_file = f"{username}_data.json" #create file based on the user
     with open(data_file, "w") as file: #open file in "write mode (w)", so that existing content can be replace
@@ -92,7 +92,7 @@ def load_data(username):
     else:
         return {} #return empty dic. -> if file doesnt exist
 
-# Function to sign in or sign, displays only if not alreay signed in 
+#function to sign in or sign up, displays only if not alreay signed in 
 def authentication():
     if not st.session_state["logged_in"]: #only show authentication options if not logged in
         account = st.sidebar.selectbox("Account:", ["Sign in", "Sign up"], key="account_selection_unique") #dropdown for account actions
@@ -115,7 +115,7 @@ def authentication():
                     st.session_state["data"] = load_data(username) #call function to load user data
                     st.session_state.update(st.session_state["data"]) #update session state with loaded data
 
-# Function to automatically save wg data
+#function to automatically save wg data
 def auto_save():
     if "username" in st.session_state and st.session_state["username"]: #saves data only when a user is signed in
         st.session_state["data"] = { #collect all data from the session
@@ -136,7 +136,7 @@ def auto_save():
 
 
 
-#function to delete the account
+#function to delete account
 def delete_account():
     with st.expander("Delete account"): #ection (expandable) to delete account
         st.warning("This action is irreversible. Deleting your account will remove all your data.") #show warning
@@ -184,7 +184,7 @@ if st.session_state["logged_in"]: #show main content and sidebar only when logge
         st.session_state["username"] = None #clear username
         st.session_state["data"] = {} #clear data
 
-    #page display logic for the selected page (sidebar)
+    #page logic for selected page (sidebar)
     if st.session_state["page"] == "overview":
         st.title(f"Overview: {st.session_state['flate_name']}") #show overview page
         st.write("Welcome to your WG overview page!") #Welcome message
