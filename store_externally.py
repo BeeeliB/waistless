@@ -70,37 +70,37 @@ def login_user(username, password):
     #checks if the user name exist and the password ist the right, if true then load the data
     if username in users and users[username] == password: 
         st.session_state["logged_in"] = True #mark user as logged in
-        st.session_state["username"] = username #
-        st.session_state.update(load_data(username)) # updates account data
+        st.session_state["username"] = username #save username
+        st.session_state.update(load_data(username)) #updates account data
         return True
     else:
-        st.error("Incorrect username or password!")
+        st.error("Incorrect username or password!") #show error fi input incorrect
         return False
 
-# Function for saving user-data in a JSON file 
+# Function for savin Wg data like roommates,fridge inventory, etc in Json File
 def save_data(username, data):
-    data_file = f"{username}_data.json"
-    with open(data_file, "w") as file: # Opens file in write modus
-        json.dump(data, file)
+    data_file = f"{username}_data.json" #create file based on the user
+    with open(data_file, "w") as file: #open file in "write mode (w)", so that existing content can be replace
+        json.dump(data, file) #turn and save data into json format
 
-# Function to load flat data
+# Function to load Wg data when user logs in from Json file
 def load_data(username):
-    data_file = f"{username}_data.json"
+    data_file = f"{username}_data.json" #genrate file named after username
     if os.path.exists(data_file):
         with open(data_file, "r") as file: # Opens file in read modus
-            return json.load(file)
+            return json.load(file) #return loaded data
     else:
-        return {}
+        return {} #return empty dic. -> if file doesnt exist
 
 # Function to sign in or sign, displays only if not alreay signed in 
 def authentication():
-    if not st.session_state["logged_in"]:
-        account = st.sidebar.selectbox("Account:", ["Sign in", "Sign up"], key="account_selection_unique")
+    if not st.session_state["logged_in"]: #only show authentication options if not logged in
+        account = st.sidebar.selectbox("Account:", ["Sign in", "Sign up"], key="account_selection_unique") #dropdown for account actions
 
-        username = st.sidebar.text_input("Flat")
-        password = st.sidebar.text_input("Password", type="password") 
+        username = st.sidebar.text_input("Flat") #input field for username
+        password = st.sidebar.text_input("Password", type="password") #input field password
 
-        if account == "Sign up":
+        if account == "Sign up": #if user selects sign up
             if st.sidebar.button("Sign up"):
                 if register_user(username, password): # Function to register user
                     st.success("Successfully registered! Please sign in.")
