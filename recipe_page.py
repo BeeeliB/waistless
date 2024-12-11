@@ -1,89 +1,113 @@
 import streamlit as st
-import requests
-import random
-import pandas as pd
-from datetime import datetime
 from tensorflow.keras.models import load_model
 import joblib
 import tensorflow as tf
+import os
+from datetime import datetime
+import pandas as pd
 
-# Updated Path to ML Model Components
-MODEL_PATH = 'models/recipe_model.h5'
-TFIDF_PATH = 'models/tfidf_ingredients.pkl'
-CUISINE_ENCODER_PATH = 'models/label_encoder_cuisine.pkl'
-RECIPE_ENCODER_PATH = 'models/label_encoder_recipe.pkl'
+# Initialize session state
+keys_to_initialize = [
+    "ml_model", "vectorizer", "label_encoder_cuisine", "label_encoder_recipe", 
+    "inventory", "roommates", "selected_user", "recipe_suggestions", 
+    "recipe_links", "selected_recipe", "selected_recipe_link", "cooking_history"
+]
 
-# Ensure All `st.session_state` Keys are Initialized
-def initialize_session_state():
-    keys_with_defaults = {
-        "inventory": {},
-        "roommates": [],
-        "selected_user": None,
-        "recipe_suggestions": [],
-        "recipe_links": {},
-        "selected_recipe": None,
-        "selected_recipe_link": None,
-        "cooking_history": [],
-        "ml_model": None,
-        "vectorizer": None,
-        "label_encoder_cuisine": None,
-        "label_encoder_recipe": None,
-    }
-    for key, default in keys_with_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
+defaults = {
+    "inventory": {"Tomato": {"Quantity": 5, "Unit": "gram", "Price": 3.0}},
+    "roommates": ["Bilbo", "Frodo", "Gandalf der Weise"],
+    "selected_user": None,
+    "recipe_suggestions": [],
+    "recipe_links": {},
+    "selected_recipe": None,
+    "selected_recipe_link": None,
+    "cooking_history": [],
+    "ml_model": None,
+    "vectorizer": None,
+    "label_encoder_cuisine": None,
+    "label_encoder_recipe": None
+}
 
-# Load Machine Learning Model and Components
+for key in keys_to_initialize:
+    if key not in st.session_state:
+        st.session_state[key] = defaults.get(key)
+
+# Load ML components
 def load_ml_components():
     try:
         if st.session_state["ml_model"] is None:
-            custom_objects = {
-                'mse': tf.keras.losses.MeanSquaredError(),
-                'mae': tf.keras.metrics.MeanAbsoluteError(),
-                'accuracy': tf.keras.metrics.Accuracy(),
-            }
-            st.session_state["ml_model"] = load_model(MODEL_PATH, custom_objects=custom_objects)
+            custom_objects = {"mse": tf.keras.losses.MeanSquaredError()}
+            st.session_state["ml_model"] = load_model("models/recipe_model.h5", custom_objects=custom_objects)
 
         if st.session_state["vectorizer"] is None:
-            vectorizer = joblib.load(TFIDF_PATH)
-            st.session_state["vectorizer"] = vectorizer
+            st.session_state["vectorizer"] = joblib.load("models/tfidf_ingredients.pkl")
 
         if st.session_state["label_encoder_cuisine"] is None:
-            st.session_state["label_encoder_cuisine"] = joblib.load(CUISINE_ENCODER_PATH)
+            st.session_state["label_encoder_cuisine"] = joblib.load("models/label_encoder_cuisine.pkl")
 
         if st.session_state["label_encoder_recipe"] is None:
-            st.session_state["label_encoder_recipe"] = joblib.load(RECIPE_ENCODER_PATH)
+            st.session_state["label_encoder_recipe"] = joblib.load("models/label_encoder_recipe.pkl")
 
         st.success("ML components loaded successfully!")
-        return True
     except Exception as e:
-        st.error(f"Error loading ML components: {e}")
-        return False
+        st.error(f"Failed to load ML components: {e}")
 
-# Handle Duplicate Selectbox Keys by Assigning Unique Keys
-def safe_selectbox(label, options, key_prefix):
-    unique_key = f"{key_prefix}_{label.replace(' ', '_').lower()}"
-    return st.selectbox(label, options, key=unique_key)
+# Predict a recipe based on ingredients
+def predict_recipe(ingredients):
+    try:
+        if not ingredients:
+            st.warning("No ingredients selected.")
+            return None
 
-# Main Recipe Page Function
-def recipe_page():
-    initialize_session_state()
-    st.title("Recipe Recommendation System")
+        ingredients_text = ', '.join(ingredients)
+        vector = st.session_state["vectorizer"].transform([ingredients_text]).toarray()
+        predictions = st.session_state["ml_model"].predict(vector)
 
-    # Tabs for Recipe Search and Personalized Recommendations
-    tab1, tab2 = st.tabs(["🔍 Standard Search", "🎯 Preference-Based Recommendations"])
+        recipe_index = predictions[1].argmax()
+        cuisine_index = predictions[0].argmax()
 
+        recipe = st.session_state["label_encoder_recipe"].inverse_transform([recipe_index])[0]
+        cuisine = st.session_state["label_encoder_cuisine"].inverse_transform([cuisine_index])[0]
+
+        return {"recipe": recipe, "cuisine": cuisine}
+    except Exception as e:
+        st.error(f"Prediction failed: {e}")
+        return None
+
+# Recipe page
+def recipepage():
+    st.title("Recipe Recommendations")
+    tab1, tab2 = st.tabs(["Standard Search", "Preference-Based Search"])
+
+    # Standard Search
     with tab1:
-        if st.session_state["roommates"]:
-            selected_roommate = safe_selectbox("Select a roommate", st.session_state["roommates"], "roommate_select")
-            st.session_state["selected_user"] = selected_roommate
-            st.write(f"Hello, {selected_roommate}!")
-        else:
-            st.warning("No roommates available.")
+        selected_roommate = st.selectbox(
+            "Select your roommate", 
+            st.session_state["roommates"], 
+            key="tab1_roommate"
+        )
+        st.session_state["selected_user"] = selected_roommate
 
+        if st.button("Load ML Components", key="tab1_load_ml"):
+            load_ml_components()
+
+    # Preference-Based Search
     with tab2:
-        if load_ml_components():
-            ingredients = st.multiselect("Select Ingredients", list(st.session_state["inventory"].keys()))
-            if st.button("Get Recipe Recommendations"):
-                st.write("Prediction logic here...")
-recipe_page()
+        selected_roommate = st.selectbox(
+            "Select your name", 
+            st.session_state["roommates"], 
+            key="tab2_roommate"
+        )
+        st.session_state["selected_user"] = selected_roommate
+
+        ingredients = st.multiselect("Select ingredients:", st.session_state["inventory"].keys(), key="tab2_ingredients")
+        if st.button("Get Recipe Recommendation", key="tab2_get_recipe"):
+            if not ingredients:
+                st.warning("No ingredients selected!")
+            else:
+                prediction = predict_recipe(ingredients)
+                if prediction:
+                    st.write(f"Recommended Recipe: {prediction['recipe']} (Cuisine: {prediction['cuisine']})")
+
+# Run the page
+recipepage()
