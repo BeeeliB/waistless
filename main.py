@@ -14,12 +14,12 @@ def custom_tokenizer(text):
 
 # Initialization of session state variables
 # Flat related variables
-if "flate_name" not in st.session_state: # Store the flat's name
-    st.session_state["flate_name"] = "" # Initialize as an empty string
-if "roommates" not in st.session_state: # Store the list of roommates
-    st.session_state["roommates"] = [] # Initialize as an empty list
-if "setup_finished" not in st.session_state: # Track whether the setup is complete
-    st.session_state["setup_finished"] = False # Default is not finished
+if "flate_name" not in st.session_state: #store the wg's name
+    st.session_state["flate_name"] = "" #initialize as an empty string
+if "roommates" not in st.session_state: #store the list of roommates
+    st.session_state["roommates"] = [] # initialize as an empty list
+if "setup_finished" not in st.session_state: #track whether setup is complete
+    st.session_state["setup_finished"] = False #default is not finished
 
 # Site status: first time setting page
 if "page" not in st.session_state: # Store the current page
