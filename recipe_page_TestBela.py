@@ -21,7 +21,7 @@ if "inventory" not in st.session_state:
     }
 
 if "roommates" not in st.session_state:
-    st.session_state["roommates"] = ["Bilbo", "Frodo", "Gandalf"] #example roomates
+    st.session_state["roommates"] = ["Livio", "Luca", "Filip"] #example roomates
 if "selected_user" not in st.session_state:
     st.session_state["selected_user"] = None #curretnly selected user
 if "recipe_suggestions" not in st.session_state:
